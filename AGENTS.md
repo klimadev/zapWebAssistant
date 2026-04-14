@@ -27,26 +27,82 @@ This project has no build system, package.json, or automated testing. It's a van
 ### File Structure and Architecture
 
 - `manifest.json`: Extension configuration (Manifest V3)
-- `content.js`: Content script that runs in the WhatsApp Web context and injects the main script
-- `injected.js`: Main business logic loaded into WhatsApp Web page context (has access to WPP.connect API)
-- `popup.js`/`popup.html`: Extension popup UI
-- `libs/`: Third-party libraries (JSZip, wppconnect-wa.js)
+- `background.js`: Service worker - tem acesso a APIs restritas (chrome.tabs, etc)
+- `content.js`: Content script que roda no contexto WhatsApp Web
+- `injected.js`: Lógica principal injetada no contexto da página (acessa WPP.connect API)
+- `popup.js`/`popup.html`: UI do popup da extensão
+- `sidebar.html`/`sidebar.js`: UI do side panel
+- `libs/`: Bibliotecas third-party (JSZip, wppconnect-wa.js)
+
+### Manifest V3 Moderno (2025+)
+
+Para máxima compatibilidade Chrome + Edge:
+
+```json
+{
+  "manifest_version": 3,
+  "name": "Extensão",
+  "version": "1.0",
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
+  "host_permissions": ["https://web.whatsapp.com/*"],
+  "action": {
+    "default_icon": { "16": "icon.png", "48": "icon.png", "128": "icon.png" }
+  },
+  "side_panel": {
+    "default_path": "sidebar.html",
+    "openPanelOnClick": true
+  }
+}
+```
+
+**Boas práticas:**
+- Definir `icons` no nível raiz
+- Usar `type": "module"` no background service worker
+- Preferir `activeTab` em vez de `tabs` quando possível
+- Usar `openPanelOnClick: true` no side_panel para abrir automaticamente
 
 ### Communication Patterns
 
-**Popup to Content Script:**
+**ATENÇÃO - Manifest V3 Restrições Críticas:**
+- Content scripts NÃO têm acesso direto a `chrome.tabs` API
+- Para operações de tabs, SEMPRE usar background service worker via messaging
+- Padrão: content.js → chrome.runtime.sendMessage → background.js → chrome.tabs API
+
+**Content Script → Background (requisição):**
 ```javascript
-chrome.tabs.sendMessage(tabId, {action: "start_extraction"})
+const response = await chrome.runtime.sendMessage({ action: "get_active_tab" });
+if (response?.success) {
+    const tab = response.tab;
+}
 ```
 
-**Content Script to Popup:**
+**Background → Content Script (resposta):**
 ```javascript
-chrome.runtime.sendMessage({action: "update_status", message: "..."})
+chrome.runtime.sendMessage({ action: "result", data: ... })
 ```
 
-**Injected Script to Content Script:**
+**Content Script ↔ Injected Script (same page):**
 ```javascript
 window.dispatchEvent(new CustomEvent('WPP_EXT_STATUS', {detail: message}))
+```
+
+**Injected Script → Content Script:**
+```javascript
+window.dispatchEvent(new CustomEvent('WPP_EXT_STATUS', {detail: message}))
+```
+
+**Content Script → Background:**
+```javascript
+chrome.runtime.sendMessage({action: "update_status", message: "..."})
 ```
 
 ### Naming Conventions
@@ -85,7 +141,7 @@ window.dispatchEvent(new CustomEvent('WPP_EXT_STATUS', {detail: message}))
 ### Chrome Extension APIs
 
 - Use `chrome.runtime.getURL()` for extension file paths
-- Use `chrome.tabs.query({active: true, currentWindow: true})` to get active tab
+- **NUNCA usar chrome.tabs em content scripts** - fazer via background service worker
 - Use `chrome.runtime.onMessage.addListener()` for message handling
 - Always check `chrome.runtime.lastError` after chrome API calls
 - Return `true` from message listeners for async responses
@@ -142,3 +198,71 @@ Check `msg.type` for: 'chat', 'image', 'video', 'sticker', 'document', 'location
 - Font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif
 - Disabled button: `#ccc` background
 - Status div: white background, scrollable, max-height 150px
+
+---
+
+## Aprendizados e Erros Constantes
+
+### Erros Comuns e Soluções
+
+| Erro | Causa | Solução |
+|------|-------|---------|
+| `Cannot read properties of undefined (reading 'query')` | Content script tentando usar `chrome.tabs.query` diretamente | ustilizar background service worker: content.js → chrome.runtime.sendMessage → background.js |
+| `chrome.runtime undefined` | Script executando fora do contexto da extensão | Verificar se está no content script correto (matches no manifest) |
+| `Extension context invalidated` | Extensão precisando ser recarregada | Recarregar em chrome://extensions/ |
+
+### Regras Mandatórias
+
+1. **SEMPRE versionar**: Após qualquer mudança significativa, incrementar versão no manifest.json
+2. **SEMPRE usar background para chrome.tabs**: Content script não tem acesso direto no Manifest V3
+3. **SEMPRE verificar APIs**: Validar `chrome.runtime?.id` antes de usar qualquer API
+4. **SEMPRE adicionar debugs sistemáticos**: Logs estruturados com step counter em código complexo
+
+### Debug Sistemático - Padrão
+
+```javascript
+const DEBUG = {
+    step: 0,
+    log: function(msg) {
+        console.log(`[DEBUG:${String(this.step).padStart(2,'0')}] ${msg}`);
+        this.step++;
+    },
+    error: function(context, err) {
+        console.error(`[ERROR:${String(this.step).padStart(2,'0')}] ${context}:`, {
+            message: err?.message || String(err),
+            type: err?.constructor?.name || typeof err,
+            stack: err?.stack
+        });
+        this.step++;
+    }
+};
+```
+
+### Padrão de Mensagens Background Service Worker
+
+O service worker (background.js) DEVE sempre retornar resposta com formato consistente:
+
+```javascript
+// Sucesso
+sendResponse({ success: true, data: ... })
+
+// Erro
+sendResponse({ success: false, error: "mensagem de erro" })
+```
+
+O content script DEVE verificar `response?.success` antes de usar os dados.
+
+### Bug Crítico - Cliques Não Funcionam
+
+**Sintoma:** Botões no sidebar não respondem a cliques.
+
+**Causa:** Funções helpers (ex: `const $ = id => document.getElementById(id)`) sendo usadas ANTES de serem definidas no código. JavaScript executaimmediately e quebra ao carregar.
+
+**Solução:** Definir TODOS os helpers e funções utilitárias NO TOPO do arquivo, antes de qualquer código que os use.
+
+```javascript
+// helpers.js - SEMPRE no topo
+const $ = id => document.getElementById(id);
+
+// resto do código pode usar $ agora
+```

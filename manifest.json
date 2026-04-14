@@ -1,32 +1,50 @@
 {
   "manifest_version": 3,
-  "name": "WhatsApp Chat Extractor 24h",
-  "version": "1.2",
-  "description": "Extrai mensagens e áudios das últimas 24h do chat ativo.",
+  "name": "WhatsApp Extractor + IA",
+  "version": "1.12",
+  "description": "Extrai mensagens e áudios das últimas 24h do chat ativo com Assistente de IA.",
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "sidePanel",
+    "tabs",
+    "alarms",
+    "storage"
   ],
   "host_permissions": [
     "https://web.whatsapp.com/*"
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_title": "WhatsApp Extractor",
     "default_icon": {
-        "16": "icon.png",
-        "48": "icon.png",
-        "128": "icon.png"
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
     }
+  },
+  "side_panel": {
+    "default_path": "sidebar.html",
+    "openPanelOnClick": true
   },
   "content_scripts": [
     {
       "matches": ["https://web.whatsapp.com/*"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["injected.js", "libs/*.js"],
+      "resources": ["injected.js", "sidebar.js", "libs/*.js"],
       "matches": ["https://web.whatsapp.com/*"]
     }
   ]
