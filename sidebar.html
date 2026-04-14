@@ -2,159 +2,290 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extrator WhatsApp</title>
   <style>
+    :root {
+      --bg: #eef2f8;
+      --bg-soft: #f7f9fc;
+      --surface: rgba(255, 255, 255, 0.86);
+      --surface-strong: #ffffff;
+      --line: #d9e3f0;
+      --line-strong: #c7d5e7;
+      --text: #1f2d3d;
+      --text-soft: #5f7086;
+      --primary: #2f8cff;
+      --primary-2: #4e6ff1;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+      --shadow: 0 10px 30px rgba(31, 45, 61, 0.08);
+      --shadow-soft: 0 4px 12px rgba(31, 45, 61, 0.08);
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
+    html,
     body {
-      width: 320px;
-      height: 100vh;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f8fafc;
-      color: #1e293b;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      min-width: 320px;
+      font-family: 'Manrope', 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(47, 140, 255, 0.18), transparent 45%),
+        radial-gradient(circle at 100% 25%, rgba(118, 185, 255, 0.22), transparent 36%),
+        var(--bg);
+      color: var(--text);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      gap: 10px;
     }
 
     .header {
-      padding: 12px 16px;
-      background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      padding: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
     }
 
-    .header h1 {
+    .title-wrap {
+      min-width: 0;
+    }
+
+    .title {
       font-size: 14px;
-      font-weight: 600;
-      color: white;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      margin-top: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-soft);
+      white-space: nowrap;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.16);
+      flex: 0 0 auto;
     }
 
     .header-btn {
-      background: none;
-      border: none;
-      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--text-soft);
       font-size: 18px;
+      line-height: 1;
       cursor: pointer;
-      padding: 4px;
-      opacity: 0.8;
+      transition: all 0.18s ease;
+      flex: 0 0 auto;
     }
 
     .header-btn:hover {
-      opacity: 1;
+      border-color: var(--line-strong);
+      color: var(--text);
+      transform: translateY(-1px);
     }
 
     .tabs {
-      display: flex;
-      background: white;
-      border-bottom: 1px solid #e2e8f0;
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 14px;
+      padding: 4px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(6px);
     }
 
     .tab {
-      flex: 1;
-      padding: 10px;
-      background: none;
       border: none;
+      border-radius: 10px;
+      padding: 9px 8px;
       font-size: 12px;
-      font-weight: 500;
-      color: #64748b;
+      font-weight: 600;
+      color: var(--text-soft);
+      background: transparent;
       cursor: pointer;
-      transition: all 0.2s;
-      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
     }
 
     .tab.active {
-      color: #25d366;
-      border-bottom-color: #25d366;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+      box-shadow: 0 8px 16px rgba(78, 111, 241, 0.28);
     }
 
     .tab:hover:not(.active) {
-      background: #f1f5f9;
+      background: rgba(79, 111, 241, 0.1);
+      color: #425066;
     }
 
     .tab-content {
-      flex: 1;
       display: none;
-      flex-direction: column;
+      flex: 1;
+      min-height: 0;
       overflow: hidden;
+      animation: fadeUp 0.22s ease;
     }
 
     .tab-content.active {
       display: flex;
     }
 
-    .body-extract, .body-ia {
+    .body-extract,
+    .body-ia {
+      width: 100%;
       flex: 1;
-      padding: 16px;
+      min-height: 0;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
+      padding-right: 2px;
+    }
+
+    .card {
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-soft);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #63758d;
+    }
+
+    .helper-text {
+      font-size: 11px;
+      color: var(--text-soft);
+      line-height: 1.45;
     }
 
     .form-group {
-      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
     }
 
     .label {
-      display: block;
       font-size: 11px;
-      font-weight: 500;
-      color: #64748b;
-      margin-bottom: 4px;
-      text-transform: uppercase;
+      font-weight: 600;
+      color: #566981;
+    }
+
+    .custom-select,
+    .input-field,
+    .chat-input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--text);
+      background: #ffffff;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
     .custom-select {
-      width: 100%;
       appearance: none;
-      background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 10px center;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 8px 30px 8px 10px;
-      font-size: 12px;
-      color: #1e293b;
+      padding: 9px 34px 9px 10px;
+      background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23677b94' d='M6 8L1.5 3.5h9z'/%3E%3C/svg%3E") no-repeat right 10px center;
       cursor: pointer;
     }
 
-    .custom-select:focus {
-      outline: none;
-      border-color: #25d366;
+    .input-field,
+    .chat-input {
+      padding: 9px 10px;
     }
 
-    .input-field {
-      width: 100%;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 12px;
-      color: #1e293b;
+    .custom-select:focus,
+    .input-field:focus,
+    .chat-input:focus {
+      outline: none;
+      border-color: #79a9ff;
+      box-shadow: 0 0 0 3px rgba(121, 169, 255, 0.18);
     }
 
-    .input-field:focus {
-      outline: none;
-      border-color: #25d366;
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row .form-group {
+      flex: 1;
     }
 
     .checkbox-group {
       display: flex;
-      gap: 16px;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .checkbox-label {
-      display: flex;
+    .checkbox-label,
+    .checkbox-context {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
       font-size: 11px;
-      color: #475569;
+      color: #54667d;
+      background: #f4f7fc;
+      border: 1px solid #e2e9f3;
+      border-radius: 999px;
+      padding: 6px 9px;
       cursor: pointer;
     }
 
-    .checkbox-label input {
+    .checkbox-label input,
+    .checkbox-context input {
+      accent-color: var(--primary);
       cursor: pointer;
     }
 
@@ -168,55 +299,55 @@
       display: flex;
     }
 
-    .row {
-      display: flex;
-      gap: 8px;
-    }
-
-    .row .form-group {
-      flex: 1;
+    .btn-extract,
+    .btn-send {
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
 
     .btn-extract {
       width: 100%;
-      background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
-      border: none;
-      border-radius: 8px;
       padding: 10px;
-      color: white;
-      font-weight: 600;
-      font-size: 11px;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.2s;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+      box-shadow: 0 10px 20px rgba(78, 111, 241, 0.24);
     }
 
-    .btn-extract:hover:not(:disabled) {
+    .btn-extract:hover:not(:disabled),
+    .btn-send:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+      filter: brightness(1.04);
     }
 
-    .btn-extract:disabled {
-      background: #94a3b8;
+    .btn-extract:disabled,
+    .btn-send:disabled {
+      background: #a6b3c7;
+      box-shadow: none;
       cursor: not-allowed;
+      transform: none;
     }
 
     .status-area {
-      padding: 10px;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-family: 'Consolas', monospace;
-      font-size: 10px;
-      line-height: 1.5;
-      color: #475569;
-      max-height: 100px;
+      max-height: 116px;
       overflow-y: auto;
+      border: 1px dashed #d6e1ef;
+      border-radius: 10px;
+      padding: 8px;
+      background: var(--bg-soft);
     }
 
     .log-entry {
-      padding: 2px 0;
-      border-bottom: 1px solid #e2e8f0;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      font-size: 10px;
+      line-height: 1.45;
+      color: #5e7088;
+      padding: 3px 0;
+      border-bottom: 1px solid #e4edf7;
+      word-break: break-word;
     }
 
     .log-entry:last-child {
@@ -224,245 +355,337 @@
     }
 
     .log-entry.error {
-      color: #ef4444;
+      color: var(--danger);
     }
 
     .log-entry.success {
-      color: #25d366;
-    }
-
-    .btn-open-sidebar {
-      position: fixed;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
-      color: white;
-      border: none;
-      padding: 12px 8px;
-      border-radius: 8px 0 0 8px;
-      cursor: pointer;
-      font-size: 14px;
-      box-shadow: -2px 0 8px rgba(0,0,0,0.2);
-      z-index: 9999;
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-    }
-
-    .btn-open-sidebar:hover {
-      padding-right: 12px;
+      color: var(--success);
     }
 
     .chat-container {
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-soft);
       overflow: hidden;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      background: white;
     }
 
     .chat-messages {
       flex: 1;
-      padding: 10px;
+      min-height: 0;
       overflow-y: auto;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      background:
+        linear-gradient(180deg, rgba(247, 250, 255, 0.66), rgba(255, 255, 255, 0.66));
     }
 
-    .chat-messages::-webkit-scrollbar {
-      width: 4px;
+    .chat-messages::-webkit-scrollbar,
+    .status-area::-webkit-scrollbar,
+    .body-extract::-webkit-scrollbar,
+    .body-ia::-webkit-scrollbar {
+      width: 6px;
     }
 
-    .chat-messages::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 2px;
+    .chat-messages::-webkit-scrollbar-thumb,
+    .status-area::-webkit-scrollbar-thumb,
+    .body-extract::-webkit-scrollbar-thumb,
+    .body-ia::-webkit-scrollbar-thumb {
+      background: #cad7e8;
+      border-radius: 999px;
     }
 
     .message {
+      width: fit-content;
       max-width: 90%;
+      border-radius: 14px;
       padding: 8px 10px;
-      border-radius: 10px;
       font-size: 11px;
-      line-height: 1.4;
+      line-height: 1.45;
+      word-break: break-word;
+      animation: bubbleIn 0.2s ease;
     }
 
     .message.user {
       align-self: flex-end;
-      background: #25d366;
-      color: white;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+      box-shadow: 0 8px 14px rgba(78, 111, 241, 0.22);
     }
 
     .message.ia {
       align-self: flex-start;
-      background: #f1f5f9;
-      color: #1e293b;
+      color: #233245;
+      background: #ffffff;
+      border: 1px solid #dbe6f4;
+      box-shadow: 0 6px 14px rgba(36, 57, 82, 0.08);
     }
 
     .message.ia.thinking {
-      color: #64748b;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #62748a;
       font-style: italic;
     }
 
-    .chat-input-area {
+    .typing-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .typing-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: #8ea2bc;
+      animation: pulse 1s infinite ease-in-out;
+    }
+
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    .md h1,
+    .md h2,
+    .md h3 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #16283d;
+    }
+
+    .md p {
+      margin: 0 0 6px;
+    }
+
+    .md p:last-child {
+      margin-bottom: 0;
+    }
+
+    .md ul,
+    .md ol {
+      margin: 0 0 6px 15px;
+      padding: 0;
+    }
+
+    .md li {
+      margin-bottom: 3px;
+    }
+
+    .md code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      background: #eef3fb;
+      border: 1px solid #d9e4f4;
+      border-radius: 6px;
+      padding: 1px 4px;
+      font-size: 10px;
+    }
+
+    .md pre {
+      margin: 6px 0;
+      background: #1f2d3d;
+      border-radius: 8px;
       padding: 8px;
-      border-top: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+
+    .md pre code {
+      background: transparent;
+      border: none;
+      color: #e7eef8;
+      padding: 0;
+      font-size: 10px;
+      white-space: pre;
+    }
+
+    .md blockquote {
+      margin: 6px 0;
+      border-left: 3px solid #9dbaf3;
+      padding-left: 8px;
+      color: #536b87;
+    }
+
+    .chat-input-area {
+      border-top: 1px solid #dbe7f4;
+      padding: 9px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      background: #fbfdff;
     }
 
     .chat-input {
-      width: 100%;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 11px;
-      font-family: inherit;
       resize: none;
-      min-height: 36px;
-      max-height: 80px;
-    }
-
-    .chat-input:focus {
-      outline: none;
-      border-color: #25d366;
+      min-height: 38px;
+      max-height: 120px;
+      line-height: 1.4;
+      font-family: inherit;
     }
 
     .chat-actions {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-    }
-
-    .checkbox-context {
-      font-size: 10px;
-      color: #64748b;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .btn-send {
-      background: #25d366;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 14px;
-      color: white;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
+      padding: 8px 14px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+      min-width: 80px;
     }
 
-    .btn-send:hover:not(:disabled) {
-      background: #128c7e;
+    @keyframes bubbleIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    .btn-send:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
+    @keyframes pulse {
+      0%,
+      80%,
+      100% {
+        transform: scale(0.8);
+        opacity: 0.6;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
 
-    .no-context {
-      text-align: center;
-      padding: 20px;
-      color: #64748b;
-      font-size: 11px;
-    }
-
-    .no-context-icon {
-      font-size: 32px;
-      margin-bottom: 8px;
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>🚀 Extrator WhatsApp</h1>
-    <button class="header-btn" id="btnToggle" title="Fechar">✕</button>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" data-tab="extract">📥 Extrair</button>
-    <button class="tab" data-tab="ia">🤖 Assistente IA</button>
-  </div>
-
-  <div class="tab-content active" id="tab-extract">
-    <div class="body-extract">
-      <div class="form-group">
-        <label class="label">📊 Modo de Extração</label>
-        <select id="extractMode" class="custom-select">
-          <option value="last_24h">🕐 Últimas 24 horas</option>
-          <option value="date_range">📅 Desde data específica</option>
-          <option value="last_x_days">🗓️ Últimos X dias</option>
-          <option value="all">📚 Todas as mensagens</option>
-        </select>
+  <div class="panel">
+    <div class="header">
+      <div class="title-wrap">
+        <h1 class="title">Extrator WhatsApp</h1>
+        <span class="subtitle"><span class="status-dot"></span><span id="globalStatus">Pronto para extrair</span></span>
       </div>
+      <button class="header-btn" id="btnToggle" title="Fechar">×</button>
+    </div>
 
-      <div id="dateRangeFields" class="conditional-field">
-        <div class="row">
+    <div class="tabs">
+      <button class="tab active" data-tab="extract">Extrair</button>
+      <button class="tab" data-tab="ia">Assistente IA</button>
+    </div>
+
+    <div class="tab-content active" id="tab-extract">
+      <div class="body-extract">
+        <div class="card">
+          <div class="card-title">Extração rápida em 3 passos</div>
+          <p class="helper-text">Escolha o período, marque o que vai no ZIP e clique em extrair.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Configuração</div>
           <div class="form-group">
-            <label class="label">📆 Data</label>
-            <input type="date" id="fromDate" class="input-field">
+            <label class="label">Modo de extração</label>
+            <select id="extractMode" class="custom-select">
+              <option value="last_24h">Últimas 24 horas</option>
+              <option value="date_range">Desde data específica</option>
+              <option value="last_x_days">Últimos X dias</option>
+              <option value="all">Todas as mensagens</option>
+            </select>
           </div>
+
+          <div id="dateRangeFields" class="conditional-field">
+            <div class="row">
+              <div class="form-group">
+                <label class="label">Data</label>
+                <input type="date" id="fromDate" class="input-field">
+              </div>
+              <div class="form-group">
+                <label class="label">Hora</label>
+                <input type="time" id="fromTime" class="input-field" value="00:00">
+              </div>
+            </div>
+          </div>
+
+          <div id="lastXDaysFields" class="conditional-field">
+            <div class="form-group">
+              <label class="label">Número de dias</label>
+              <input type="number" id="daysCount" class="input-field" min="1" max="365" value="7">
+            </div>
+          </div>
+
           <div class="form-group">
-            <label class="label">🕐 Hora</label>
-            <input type="time" id="fromTime" class="input-field" value="00:00">
+            <label class="label">Incluir no ZIP</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="includeAudio" checked>
+                Áudio
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="includeImage" checked>
+                Imagem
+              </label>
+            </div>
+          </div>
+
+          <button id="btnExtract" class="btn-extract">Extrair mensagens</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Status da execução</div>
+          <div class="status-area" id="status">
+            <div class="log-entry">⏳ Pronto para extrair...</div>
           </div>
         </div>
-      </div>
-
-      <div id="lastXDaysFields" class="conditional-field">
-        <div class="form-group">
-          <label class="label">🔢 Número de Dias</label>
-          <input type="number" id="daysCount" class="input-field" min="1" max="365" value="7">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="label">📎 Incluir no ZIP</label>
-        <div class="checkbox-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="includeAudio" checked>
-            Áudio
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="includeImage" checked>
-            Imagem
-          </label>
-        </div>
-      </div>
-
-      <button id="btnExtract" class="btn-extract">📥 Extrair Mensagens</button>
-
-      <div class="status-area" id="status">
-        <div class="log-entry">⏳ Pronto para extrair...</div>
       </div>
     </div>
-  </div>
 
-  <div class="tab-content" id="tab-ia">
-    <div class="body-ia">
-      <div class="chat-container">
-        <div class="chat-messages" id="chatMessages">
-          <div class="message ia">
-            👋 Olá! Sou seu assistente de IA para analisar conversas do WhatsApp.
-            
-            Para começar:
-            1. Va na aba "Extrair" e baixe as mensagens
-            2. volte aqui e faça perguntas sobre a conversa
-            
-            Posso ajudar a identificar padrões, resumir, responder dúvidas sobre a conversa!
+    <div class="tab-content" id="tab-ia">
+      <div class="body-ia">
+        <div class="chat-container">
+          <div class="chat-messages" id="chatMessages">
+            <div class="message ia md">
+              <h3>Bem-vindo ao Assistente IA</h3>
+              <p>Para começar:</p>
+              <ol>
+                <li>Use a aba <strong>Extrair</strong> para baixar as mensagens.</li>
+                <li>Volte aqui e pergunte o que quiser sobre a conversa.</li>
+              </ol>
+              <p>Eu posso resumir, identificar padrões e responder perguntas com base no contexto.</p>
+            </div>
           </div>
-        </div>
-        <div class="chat-input-area">
-          <textarea id="chatInput" class="chat-input" placeholder="Digite sua pergunta..." rows="1"></textarea>
-          <div class="chat-actions">
-            <label class="checkbox-context">
-              <input type="checkbox" id="useContext" checked>
-              Com contexto da conversa
-            </label>
-            <button id="btnSend" class="btn-send">Enviar</button>
+          <div class="chat-input-area">
+            <textarea id="chatInput" class="chat-input" placeholder="Digite sua pergunta..." rows="1"></textarea>
+            <div class="chat-actions">
+              <label class="checkbox-context">
+                <input type="checkbox" id="useContext" checked>
+                Usar contexto extraído
+              </label>
+              <button id="btnSend" class="btn-send">Enviar</button>
+            </div>
           </div>
         </div>
       </div>

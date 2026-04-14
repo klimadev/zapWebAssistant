@@ -9,6 +9,7 @@ const $ = id => document.getElementById(id);
 const DEBUG = {
   prefix: '[SIDEBAR]',
   step: 0,
+  showInChat: false,
 
   log: function(msg, data = null) {
     const out = `${this.prefix}:${String(this.step).padStart(2,'0')} ${msg}`;
@@ -18,7 +19,7 @@ const DEBUG = {
     } else {
       console.log(out);
     }
-    if (container) {
+    if (container && this.showInChat) {
       const entry = document.createElement('div');
       entry.className = 'message ia';
       entry.style.color = '#64748b';
@@ -98,6 +99,17 @@ function addLog(message, isError = false, isSuccess = false) {
   entry.textContent = message;
   status.appendChild(entry);
   status.scrollTop = status.scrollHeight;
+
+  const globalStatus = $('globalStatus');
+  if (globalStatus) {
+    if (isError) {
+      globalStatus.textContent = 'Erro na execução';
+    } else if (isSuccess) {
+      globalStatus.textContent = 'Extração concluída';
+    } else {
+      globalStatus.textContent = message.replace(/^[^\wÀ-ÿ]+/, '').slice(0, 42);
+    }
+  }
 }
 
 function addChatMessage(text, isUser = false, isThinking = false) {
@@ -109,10 +121,83 @@ function addChatMessage(text, isUser = false, isThinking = false) {
 
   const div = document.createElement('div');
   div.className = 'message ' + (isUser ? 'user' : 'ia') + (isThinking ? ' thinking' : '');
-  div.textContent = text;
+
+  if (isThinking) {
+    div.innerHTML = '<span>Pensando</span><span class="typing-dots"><span></span><span></span><span></span></span>';
+  } else if (isUser) {
+    div.textContent = text;
+  } else {
+    div.classList.add('md');
+    div.innerHTML = renderMarkdown(text);
+  }
+
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
   return div;
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderMarkdown(text) {
+  const raw = String(text || '');
+  let html = escapeHtml(raw);
+
+  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  html = html.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
+  html = html.replace(/^>\s?(.*)$/gm, '<blockquote>$1</blockquote>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = '<p>' + html + '</p>';
+
+  html = html.replace(/(?:^|\n)([-*])\s+(.+)(?=(?:\n[-*]\s+)|\n\n|$)/g, function(match) {
+    const items = match
+      .trim()
+      .split(/\n/)
+      .map(line => line.replace(/^[-*]\s+/, '').trim())
+      .map(item => `<li>${item}</li>`)
+      .join('');
+    return `\n<ul>${items}</ul>`;
+  });
+
+  html = html.replace(/(?:^|\n)(\d+)\.\s+(.+)(?=(?:\n\d+\.\s+)|\n\n|$)/g, function(match) {
+    const items = match
+      .trim()
+      .split(/\n/)
+      .map(line => line.replace(/^\d+\.\s+/, '').trim())
+      .map(item => `<li>${item}</li>`)
+      .join('');
+    return `\n<ol>${items}</ol>`;
+  });
+
+  html = html.replace(/<p>\s*(<(h\d|ul|ol|pre|blockquote)[\s\S]*?>[\s\S]*?<\/(h\d|ul|ol|pre|blockquote)>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*<\/p>/g, '');
+
+  return html;
+}
+
+function updateExtractButtonState(isLoading) {
+  const btn = $('btnExtract');
+  if (!btn) return;
+  btn.disabled = isLoading;
+  btn.textContent = isLoading ? 'Extraindo...' : 'Extrair mensagens';
+}
+
+function updateSendButtonState(isLoading) {
+  const btn = $('btnSend');
+  if (!btn) return;
+  btn.disabled = isLoading;
+  btn.textContent = isLoading ? 'Enviando...' : 'Enviar';
 }
 
 function getFilterConfig() {
@@ -174,13 +259,12 @@ async function startExtraction() {
   
   isExtracting = true;
 
-  const btn = $('btnExtract');
   const includeAudio = $('includeAudio').checked;
   const includeImage = $('includeImage').checked;
   
   DEBUG.log('Parâmetros', { includeAudio, includeImage });
   
-  btn.disabled = true;
+  updateExtractButtonState(true);
   $('status').innerHTML = '';
   
   try {
@@ -205,18 +289,18 @@ async function startExtraction() {
         DEBUG.error('SEND_MESSAGE', new Error(chrome.runtime.lastError.message));
         addLog(`❌ ${chrome.runtime.lastError.message}`, true);
         addLog('Certifique-se de estar na aba do WhatsApp Web.', true);
-        btn.disabled = false;
+        updateExtractButtonState(false);
         isExtracting = false;
       } else {
         DEBUG.log('Resposta do content', response);
-        addLog('💉 Extração iniciada!', true);
+        addLog('💉 Extração iniciada!');
       }
     });
 
   } catch (error) {
     DEBUG.error('START_EXTRACTION', error);
     addLog(`❌ ${error.message}`, true);
-    btn.disabled = false;
+    updateExtractButtonState(false);
     isExtracting = false;
   }
 }
@@ -247,8 +331,9 @@ async function sendToIA() {
   DEBUG.log('Iniciando request...');
 
   isChatting = true;
-  btnSend.disabled = true;
+  updateSendButtonState(true);
   input.value = '';
+  autoResizeTextarea(input);
 
   addChatMessage(userMessage, true);
 
@@ -338,9 +423,15 @@ Responda sempre em português brasileiro, de forma clara e útil.`
     addChatMessage(`❌ Erro: ${error.message}`, false);
   } finally {
     isChatting = false;
-    btnSend.disabled = false;
+    updateSendButtonState(false);
     DEBUG.log('Finalizado');
   }
+}
+
+function autoResizeTextarea(input) {
+  if (!input) return;
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
 }
 
 function buildContextText() {
@@ -422,11 +513,14 @@ function initChat() {
   const input = $('chatInput');
   const btnSend = $('btnSend');
 
+  autoResizeTextarea(input);
+
   const sendMessage = () => {
     if (!isChatting) sendToIA();
   };
 
   btnSend.addEventListener('click', sendMessage);
+  input.addEventListener('input', () => autoResizeTextarea(input));
   
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -455,7 +549,7 @@ function setupMessageListener() {
       
       if (request.message.includes('concluído') || request.message.includes('Erro')) {
         DEBUG.log('Extração finalizada, habilitando botão');
-        $('btnExtract').disabled = false;
+        updateExtractButtonState(false);
         isExtracting = false;
       }
     }
