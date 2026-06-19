@@ -188,12 +188,23 @@ async function loadModels() {
     if (modelSelect) modelSelect.innerHTML = '';
     availableModels = [];
 
+    // Search input
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = '🔍 Buscar modelo…';
+    searchInput.className = 'model-search-input';
+    menu.appendChild(searchInput);
+
+    const itemsContainer = document.createElement('div');
+    itemsContainer.className = 'model-items-container';
+    menu.appendChild(itemsContainer);
+
     for (const [provider, ids] of Object.entries(groups)) {
       if (ids.length === 0) continue;
       const header = document.createElement('div');
       header.className = 'model-provider';
       header.textContent = providerLabels[provider] ?? provider;
-      menu.appendChild(header);
+      itemsContainer.appendChild(header);
 
       for (const id of ids) {
         availableModels.push({ id, provider });
@@ -208,9 +219,26 @@ async function loadModels() {
         item.dataset.id = id;
         item.textContent = id;
         item.onclick = () => selectModel(id);
-        menu.appendChild(item);
+        itemsContainer.appendChild(item);
       }
     }
+
+    // Search filter
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase();
+      let curProvider: HTMLElement | null = null;
+      for (let i = 0; i < itemsContainer.children.length; i++) {
+        const el = itemsContainer.children[i] as HTMLElement;
+        if (el.classList.contains('model-provider')) {
+          curProvider = el;
+          (el as HTMLElement).style.display = 'none';
+        } else if (el.classList.contains('model-item')) {
+          const match = !q || (el.dataset.id?.toLowerCase().includes(q) ?? false);
+          el.style.display = match ? '' : 'none';
+          if (match && curProvider) curProvider.style.display = '';
+        }
+      }
+    });
 
     const firstId = availableModels[0]?.id ?? aiConfig.defaultModel;
     selectModel(firstId);
@@ -383,7 +411,7 @@ async function callModelApi(
   timeoutMs: number,
 ): Promise<Record<string, unknown>> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => controller.abort('Timeout excedido'), timeoutMs);
 
   const selectedModel = getSelectedModel();
   const endpoint = '/chat/completions';
@@ -652,7 +680,7 @@ interface TestResult {
   chat: { ok: boolean; status: string; latency: number };
 }
 
-async function testConnection(baseUrl: string, apiKey: string): Promise<TestResult> {
+async function testConnection(baseUrl: string, apiKey: string, modelId?: string): Promise<TestResult> {
   const result: TestResult = { models: { ok: false, status: '', count: 0 }, chat: { ok: false, status: '', latency: 0 } };
 
   // Test 1: GET /models
@@ -681,7 +709,7 @@ async function testConnection(baseUrl: string, apiKey: string): Promise<TestResu
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: '', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+      body: JSON.stringify({ model: modelId ?? getSelectedModel(), messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
       signal: AbortSignal.timeout(15_000),
     });
     result.chat.latency = Math.round(performance.now() - t0);
