@@ -56,7 +56,7 @@ const STORAGE_KEY = 'wpp_ai_config';
 const STORAGE_DEBUG_KEY = 'wpp_debug_show';
 
 const DEFAULT_CONFIG: AiConfig = {
-  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://177.153.38.26:20128',
+  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'https://routerai.chamalead.com/v1',
   apiKey: import.meta.env.VITE_API_KEY ?? '',
   defaultModel: import.meta.env.VITE_DEFAULT_MODEL ?? 'gpt-4o-mini',
 };
