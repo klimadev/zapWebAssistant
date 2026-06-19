@@ -63,19 +63,140 @@ DEBUG.log('Inicializando...');
 const API_CONFIG = {
   baseUrl: 'https://routerai.chamalead.com/v1',
   apiKey: 'sk-vECcv8guLuigfTXPKDJEbrn7RPG8QiJJ6vPcc9LMG9xYc',
-  model: 'gpt-5.4-mini'
+  defaultModel: 'gpt-5.4'
 };
 
-DEBUG.log('API Config', { baseUrl: API_CONFIG.baseUrl, model: API_CONFIG.model });
+let availableModels = [];
+
+function selectModel(modelId) {
+  const modelSelect = $('modelSelect');
+  const btn = $('modelDropdownBtn');
+  const menu = $('modelDropdownMenu');
+  const nameSpan = $('selectedModelName');
+  availableModels.forEach(m => m.selected = m.id === modelId);
+  if (modelSelect) modelSelect.value = modelId;
+  if (nameSpan) nameSpan.textContent = modelId;
+  document.querySelectorAll('.model-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === modelId);
+  });
+  if (menu) menu.classList.remove('open');
+  if (btn) btn.classList.remove('open');
+}
+
+function getSelectedModel() {
+  const el = $('modelSelect');
+  return el ? el.value : API_CONFIG.defaultModel;
+}
+
+async function loadModels() {
+  try {
+    const response = await fetch(`${API_CONFIG.baseUrl}/models`, {
+      headers: { 'Authorization': `Bearer ${API_CONFIG.apiKey}` }
+    });
+    const data = await response.json();
+    const menu = $('modelDropdownMenu');
+    const modelSelect = $('modelSelect');
+    if (menu && data.data) {
+      const sortedModels = data.data.map(m => m.id).sort();
+      const groups = { openai: [], google: [], qwen: [], other: [] };
+      const providerLabels = { openai: 'OpenAI', google: 'Google', qwen: 'Qwen', other: 'Outros' };
+      sortedModels.forEach(id => {
+        if (id.startsWith('gpt-')) groups.openai.push(id);
+        else if (id.startsWith('gemini')) groups.google.push(id);
+        else if (id.startsWith('coder')) groups.qwen.push(id);
+        else groups.other.push(id);
+      });
+      menu.innerHTML = '';
+      if (modelSelect) modelSelect.innerHTML = '';
+      availableModels = [];
+      Object.keys(groups).forEach(provider => {
+        const ids = groups[provider];
+        if (ids.length === 0) return;
+        const header = document.createElement('div');
+        header.className = 'model-provider';
+        header.textContent = providerLabels[provider];
+        menu.appendChild(header);
+        ids.forEach(id => {
+          availableModels.push({ id, provider });
+          if (modelSelect) {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = id;
+            modelSelect.appendChild(option);
+          }
+          const item = document.createElement('div');
+          item.className = 'model-item';
+          item.dataset.id = id;
+          item.textContent = id;
+          item.onclick = () => selectModel(id);
+          menu.appendChild(item);
+        });
+      });
+      availableModels.push({ id: 'vision-model', provider: 'custom' });
+      if (modelSelect) {
+        const option = document.createElement('option');
+        option.value = 'vision-model';
+        option.textContent = 'vision-model';
+        modelSelect.appendChild(option);
+      }
+      const visionItem = document.createElement('div');
+      visionItem.className = 'model-provider';
+      visionItem.textContent = 'Custom';
+      visionItem.style.marginTop = '8px';
+      menu.appendChild(visionItem);
+      const visionOpt = document.createElement('div');
+      visionOpt.className = 'model-item';
+      visionOpt.dataset.id = 'vision-model';
+      visionOpt.textContent = 'vision-model';
+      visionOpt.onclick = () => selectModel('vision-model');
+      menu.appendChild(visionOpt);
+      const defaultModel = API_CONFIG.defaultModel;
+      const firstModel = availableModels[0]?.id || defaultModel || 'gpt-5.4';
+      selectModel(firstModel);
+      $('selectedModelName').textContent = firstModel;
+    }
+    DEBUG.log('Modelos carregados', { count: data.data?.length });
+  } catch (error) {
+    DEBUG.error('loadModels', error);
+    $('selectedModelName').textContent = 'Erro';
+  }
+
+  const btn = $('modelDropdownBtn');
+  const menu = $('modelDropdownMenu');
+  if (btn && menu) {
+    btn.onclick = () => {
+      const isOpen = menu.classList.contains('open');
+      menu.classList.toggle('open', !isOpen);
+      btn.classList.toggle('open', !isOpen);
+    };
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#modelSelectorContainer')) {
+        menu.classList.remove('open');
+        btn.classList.remove('open');
+      }
+    });
+  }
+}
+
+function getSelectedModel() {
+  const el = $('modelSelect');
+  return el ? el.value : API_CONFIG.defaultModel;
+}
+
+DEBUG.log('API Config', { baseUrl: API_CONFIG.baseUrl, defaultModel: API_CONFIG.defaultModel });
 
 let currentContext = null;
 let chatHistory = [];
 let isExtracting = false;
 let isChatting = false;
+let isRecording = false;
+let speechRecognition = null;
+let speechTranscript = '';
 
 DEBUG.log('Variáveis de estado', { 
   isExtracting, 
   isChatting, 
+  isRecording,
   hasContext: !!currentContext 
 });
 
@@ -307,6 +428,174 @@ async function startExtraction() {
 
 DEBUG.separator('SEND_TO_IA');
 
+function extractAssistantText(data) {
+  if (data?.choices?.[0]?.message?.content) {
+    const content = data.choices[0].message.content;
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+      return content
+        .filter(part => (part?.type === 'text' || part?.type === 'output_text') && part?.text)
+        .map(part => part.text)
+        .join('\n')
+        .trim();
+    }
+  }
+
+  if (typeof data?.output_text === 'string' && data.output_text.trim()) {
+    return data.output_text;
+  }
+
+  if (Array.isArray(data?.output)) {
+    const text = data.output
+      .flatMap(item => item?.content || [])
+      .filter(part => part?.type === 'output_text' && part?.text)
+      .map(part => part.text)
+      .join('\n')
+      .trim();
+    if (text) return text;
+  }
+
+  return '';
+}
+
+function toResponsesInput(messages) {
+  return messages.map(msg => {
+    if (msg.role === 'system') {
+      return {
+        role: 'user',
+        content: [{ type: 'input_text', text: `[INSTRUCOES]\n${String(msg.content || '')}` }]
+      };
+    }
+
+    const role = msg.role === 'assistant' ? 'assistant' : 'user';
+
+    if (typeof msg.content === 'string') {
+      return {
+        role,
+        content: [{ type: role === 'assistant' ? 'output_text' : 'input_text', text: msg.content }]
+      };
+    }
+
+    if (Array.isArray(msg.content)) {
+      const normalizedContent = msg.content
+        .map(part => {
+          if (!part || !part.type) return null;
+          if (part.type === 'input_text' || part.type === 'input_audio' || part.type === 'input_image' || part.type === 'input_file') {
+            return part;
+          }
+          if (part.type === 'text') {
+            return { type: 'input_text', text: part.text || '' };
+          }
+          if (part.type === 'output_text') {
+            return part;
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      return {
+        role,
+        content: normalizedContent.length > 0 ? normalizedContent : [{ type: 'input_text', text: '' }]
+      };
+    }
+
+    return {
+      role,
+      content: [{ type: role === 'assistant' ? 'output_text' : 'input_text', text: String(msg.content || '') }]
+    };
+  });
+}
+
+function toChatCompletionsInput(messages) {
+  return messages.map(msg => {
+    if (msg.role === 'system') {
+      return { role: 'system', content: msg.content };
+    }
+
+    const role = msg.role === 'assistant' ? 'assistant' : 'user';
+
+    if (typeof msg.content === 'string') {
+      return { role, content: msg.content };
+    }
+
+    if (Array.isArray(msg.content)) {
+      const contentParts = msg.content
+        .map(part => {
+          if (!part || !part.type) return null;
+
+          if (part.type === 'input_audio') {
+            return {
+              type: 'input_audio',
+              audio: {
+                path: part.input_file?.data || part.audio || part.data
+              }
+            };
+          }
+          if (part.type === 'input_text' || part.type === 'output_text') {
+            return { type: 'text', text: part.text || '' };
+          }
+          if (part.type === 'text') {
+            return { type: 'text', text: part.text || '' };
+          }
+          if (part.type === 'input_file') {
+            return {
+              type: 'input_file',
+              file_data: part.input_file?.data || part.data || ''
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      return {
+        role,
+        content: contentParts.length > 0 ? contentParts : [{ type: 'text', text: '' }]
+      };
+    }
+
+    return { role, content: String(msg.content || '') };
+  });
+}
+
+async function callModelApi(messages, hasAudio, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const selectedModel = getSelectedModel();
+  const endpoint = '/chat/completions';
+  DEBUG.log('Fetch URL', `${API_CONFIG.baseUrl}${endpoint}`, { model: selectedModel, hasAudio });
+
+  const body = {
+    model: selectedModel,
+    messages: toChatCompletionsInput(messages),
+    temperature: 0.7
+  };
+
+  if (hasAudio) {
+    body.modalities = ['text', 'audio'];
+  }
+
+  const response = await fetch(`${API_CONFIG.baseUrl}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_CONFIG.apiKey}`
+    },
+    body: JSON.stringify(body),
+    signal: controller.signal
+  });
+
+  clearTimeout(timeoutId);
+  DEBUG.log('Response status', response.status);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `Erro API: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 async function sendToIA() {
   DEBUG.log('sendToIA chamada', { isChatting });
   
@@ -349,64 +638,105 @@ async function sendToIA() {
 
     messages.push({
       role: 'system',
-      content: `Você é um assistente de IA especializado em analisar conversas do WhatsApp. 
-Você foi invokedado por uma extensão Chrome que extrai mensagens do WhatsApp Web.
-Seu objetivo é responder dúvidas sobre a conversa, identificar padrões, resumir informações, e ajudar o usuário a entender melhor suas conversas.
-Responda sempre em português brasileiro, de forma clara e útil.`
-    });
+      content: `Você é a **WPP AI Assistant**, uma assistente de IA ultra-poderosa e persuasiva, especializada em conversas do WhatsApp. Você foi invocada por uma extensão Chrome que extrai mensagens do WhatsApp Web.
 
-    if (useContext && currentContext) {
-      const contextText = buildContextText();
-      messages.push({
-        role: 'system',
-        content: `Aqui está o contexto da conversa extraída:\n\n${contextText}`
-      });
-      DEBUG.log('Contexto adicionado', { contextLength: contextText.length });
-    }
+## SUA MISSÃO
+Você é uma parceira estratégica do usuário. Sua tarefa é analisar, processar, resumir, responder e transformar qualquer informação da conversa do WhatsApp em valor real.
+
+## SUAS CAPACIDADES
+
+### 📝 ANÁLISE & RESUMO
+- Resumir conversas inteiras em pontos-chave acionáveis
+- Identificar padrões de comportamento, moods, tendências
+- Extrair insights que o usuário talvez não tenha percebido
+- Detectar oportunidades, problemas, necessidades
+
+### 🧠 ASSISTENTE PESSOAL
+- Responder mensagens em nome do usuário (com aprovação)
+- Traduzir mensagens para outros idiomas
+- Reescrever mensagens para tom diferente (formal, casual, persuasivo)
+- Criar respostas criativas para situações difíceis
+
+### 🎧 ANÁLISE DE ÁUDIOS
+- Quando o usuário enviar arquivos de áudio, transcreva-os e analise o conteúdo
+- Identifique emoções, tom de voz, contexto
+- Extraia informações importantes dos áudios
+
+### 💡 BRAINSTORMING
+- Gerar ideias para respostas, propostas, projetos
+- Sugerir próximos passos baseada na conversa
+- Criar listas de tarefas baseada nas mensagens
+
+### 🔍 INVESTIGAÇÃO
+- Pesquisar e explicar termos, gírias, códigos
+- Contextualizar informações das mensagens
+- Conectar informações entre diferentes conversas
+
+## PERSONALIDADE
+- Seja **persuasiva**: Argumente, convença, motive
+- Seja **proativa**: Antecipe necessidades e sugira ações
+- Seja **empática**: Entenda emoções e contexto humano
+- Seja **directa**: Vá direto ao ponto, sem redundâncias
+- Seja **inteligente**: Conecta dados, vê além do óbvio
+
+## REGRAS
+- Sempre responda em **português brasileiro**
+- Quando pedir aprovação, deixe claro o que precisa de confirmação
+- Use markdown para formatar suas respostas
+- Se não tiver contexto suficiente, peça mais informações
+- Quando houver áudio para analisar, faça isso com atenção
+
+## CONTEXTO EXTRAÍDO DO WHATSAPP
+${useContext && currentContext ? `Você tem acesso ao seguinte contexto:\n\n${buildContextText()}` : 'Sem contexto extraído ainda. Peça ao usuário para primeiro extrair as mensagens na aba "Extrair".'}
+
+Agora, responda à próxima mensagem do usuário da forma mais útil possível.`
+    });
 
     for (const msg of chatHistory) {
       messages.push(msg);
     }
     DEBUG.log('Chat history', { length: chatHistory.length });
 
-    messages.push({ role: 'user', content: userMessage });
-    DEBUG.log('Enviando para API...');
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    DEBUG.log('Fetch URL', `${API_CONFIG.baseUrl}/chat/completions`);
-    
-    const response = await fetch(`${API_CONFIG.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_CONFIG.apiKey}`
-      },
-      body: JSON.stringify({
-        model: API_CONFIG.model,
-        messages: messages,
-        temperature: 0.7
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-    DEBUG.log('Response status', response.status);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      DEBUG.error('API_ERROR', new Error(errorData.error?.message || `Erro API: ${response.status}`));
-      throw new Error(errorData.error?.message || `Erro API: ${response.status}`);
+    const audioContents = [];
+    if (useContext && currentContext?.messages) {
+      const audioMsgs = currentContext.messages.filter(m => m.audioBase64);
+      if (audioMsgs.length > 0) {
+        DEBUG.log('Áudios encontrados para enviar', { count: audioMsgs.length });
+        for (const audioMsg of audioMsgs) {
+          const rawFormat = audioMsg.audioMimeType?.split('/')[1] || 'ogg';
+          const format = rawFormat.split(';')[0].trim() || 'ogg';
+          audioContents.push({
+            type: 'input_audio',
+            audio: {
+              data: audioMsg.audioBase64,
+              format: audioMsg.audioMimeType || `audio/${format}`
+            }
+          });
+        }
+      }
     }
 
-    const data = await response.json();
+    messages.push({
+      role: 'user',
+      content: audioContents.length > 0
+        ? [
+            {
+              type: 'input_text',
+              text: userMessage + '\n\nTranscreva os áudios .ogg e responda com base no conteúdo deles.'
+            },
+            ...audioContents
+          ]
+        : userMessage
+    });
+    DEBUG.log('Enviando para API...');
+
+    const data = await callModelApi(messages, audioContents.length > 0, audioContents.length > 0 ? 180000 : 30000);
     DEBUG.log('Response data', { 
       choices: data.choices?.length || 0,
-      hasContent: !!data.choices?.[0]?.message?.content
+      hasContent: !!extractAssistantText(data)
     });
     
-    const iaResponse = data.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.';
+    const iaResponse = extractAssistantText(data) || 'Desculpe, não consegui processar sua mensagem.';
 
     if (thinkingMsg) {
       thinkingMsg.remove();
@@ -512,6 +842,7 @@ function initExtractMode() {
 function initChat() {
   const input = $('chatInput');
   const btnSend = $('btnSend');
+  const btnMic = $('btnMic');
 
   autoResizeTextarea(input);
 
@@ -528,6 +859,95 @@ function initChat() {
       sendMessage();
     }
   });
+
+  if (btnMic) {
+    btnMic.addEventListener('click', toggleRecording);
+  }
+}
+
+async function toggleRecording() {
+  const btnMic = $('btnMic');
+  
+  if (isRecording) {
+    stopRecording();
+    return;
+  }
+
+  try {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      throw new Error('Seu navegador não suporta reconhecimento de voz local.');
+    }
+
+    speechRecognition = new SpeechRecognition();
+    speechRecognition.lang = 'pt-BR';
+    speechRecognition.interimResults = true;
+    speechRecognition.continuous = true;
+    speechTranscript = '';
+
+    speechRecognition.onresult = (event) => {
+      let partial = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0]?.transcript || '';
+        if (event.results[i].isFinal) {
+          speechTranscript += transcript + ' ';
+        } else {
+          partial += transcript;
+        }
+      }
+
+      const input = $('chatInput');
+      if (input) {
+        input.value = (speechTranscript + partial).trim();
+        autoResizeTextarea(input);
+      }
+    };
+
+    speechRecognition.onerror = (event) => {
+      DEBUG.error('SPEECH_RECOGNITION', new Error(event.error || 'Erro no reconhecimento'));
+    };
+
+    speechRecognition.onend = () => {
+      const text = speechTranscript.trim();
+      isRecording = false;
+      if (btnMic) {
+        btnMic.classList.remove('recording');
+        btnMic.textContent = '🎤';
+      }
+
+      if (text) {
+        const input = $('chatInput');
+        input.value = text;
+        autoResizeTextarea(input);
+        addChatMessage('🎤 Transcrição local concluída.', false);
+        sendToIA();
+      } else {
+        addChatMessage('⚠️ Não consegui transcrever. Tente falar mais próximo do microfone.', false);
+      }
+    };
+
+    speechRecognition.start();
+    isRecording = true;
+    btnMic.classList.add('recording');
+    btnMic.textContent = '⏹';
+    DEBUG.log('Gravação iniciada');
+  } catch (error) {
+    DEBUG.error('RECORD_START', error);
+    addChatMessage('❌ Erro ao acessar microfone. Verifique as permissões.', false);
+  }
+}
+
+function stopRecording() {
+  if (speechRecognition && isRecording) {
+    speechRecognition.stop();
+    isRecording = false;
+    const btnMic = $('btnMic');
+    if (btnMic) {
+      btnMic.classList.remove('recording');
+      btnMic.textContent = '🎤';
+    }
+    DEBUG.log('Gravação parada');
+  }
 }
 
 function initToggle() {
@@ -611,7 +1031,11 @@ function initSidebar() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initSidebar);
+  document.addEventListener('DOMContentLoaded', () => {
+    initSidebar();
+    loadModels();
+  });
 } else {
   initSidebar();
+  loadModels();
 }

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "WhatsApp Extractor + IA",
-  "version": "1.13",
-  "description": "Extrai mensagens e áudios das últimas 24h do chat ativo com Assistente de IA.",
+  "version": "1.26",
+  "description": "Extrai mensagens e áudios do WhatsApp com Assistente IA e seletor de modelos.",
   "icons": {
     "16": "icon.png",
     "48": "icon.png",

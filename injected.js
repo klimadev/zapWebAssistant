@@ -164,40 +164,59 @@
     // --- Helper de Nome do Remetente ---
     DEBUG.separator('HELPERS');
     
+    let myUserId = null;
+    let myDisplayName = "Eu";
+    
+    async function getMyUserInfo() {
+        try {
+            myUserId = window.WPP.conn.getMyUserId();
+            DEBUG.log('Meu userId', myUserId);
+            
+            if (myUserId) {
+                const myContact = await window.WPP.contact.get(myUserId);
+                if (myContact) {
+                    myDisplayName = myContact.pushname || myContact.formattedName || myContact.name || myDisplayName;
+                    DEBUG.log('Meu nome', myDisplayName);
+                }
+            }
+        } catch (err) {
+            DEBUG.error('GET_MY_USER', err);
+        }
+    }
+    
     function getSenderName(msg) {
         DEBUG.step--; // Não contar como step para não poluir muito
         
-        let senderName = "Eu";
-        if (!msg.fromMe) {
-            const senderObj = msg.sender || {};
-            
-            DEBUG.info('getSenderName', {
-                hasSenderObj: !!senderObj,
-                pushname: senderObj.pushname,
-                formattedName: senderObj.formattedName,
-                name: senderObj.name,
-                author: msg.author,
-                from: msg.from
-            });
-            
-            const name = senderObj.pushname || senderObj.formattedName || senderObj.name;
-            
-            if (name) {
-                senderName = name;
-            } else {
-                const id = msg.author || msg.from;
-                if (id) {
-                    const rawId = typeof id === 'string' ? id : id._serialized;
-                    const cleanId = rawId?.split('@')[0];
-                    senderName = `+${cleanId}`;
-                    DEBUG.log(`Usando ID como nome: ${senderName}`);
-                } else {
-                    senderName = "Desconhecido";
-                }
-            }
+        if (msg.fromMe) {
+            return myDisplayName;
         }
         
-        return senderName;
+        const senderObj = msg.sender || {};
+        
+        DEBUG.info('getSenderName', {
+            hasSenderObj: !!senderObj,
+            pushname: senderObj.pushname,
+            formattedName: senderObj.formattedName,
+            name: senderObj.name,
+            author: msg.author,
+            from: msg.from
+        });
+        
+        const name = senderObj.pushname || senderObj.formattedName || senderObj.name;
+        
+        if (name) {
+            return name;
+        }
+        
+        const id = msg.author || msg.from;
+        if (id) {
+            const rawId = typeof id === 'string' ? id : id._serialized;
+            const cleanId = rawId?.split('@')[0];
+            DEBUG.log(`Usando ID como nome: ${cleanId}`);
+            return `+${cleanId}`;
+        }
+        
+        return "Desconhecido";
     }
 
     function normalizeMessages(messages) {
@@ -356,6 +375,10 @@
             await waitForWPP();
             DEBUG.log('04. WPP pronto!');
             
+            // --- Obter informações do usuário logado ---
+            DEBUG.log('04b. Identificando usuário logado...');
+            await getMyUserInfo();
+            
             // ============================
             // 1. Identificar Chat Ativo
             // ============================
@@ -472,12 +495,18 @@
             let txtContent = `Extrato de Conversa: ${chatName}\n`;
             txtContent += `Filtro: ${filterLabel}\n`;
             txtContent += `Gerado em: ${new Date().toLocaleString()}\n`;
-            txtContent += `Total Mensagens: ${filteredMessages.length}\n\n`;
+            txtContent += `Total Mensagens: ${filteredMessages.length}\n`;
+            txtContent += `MEU NOME NESTA CONVERSA: ${myDisplayName}\n\n`;
+            txtContent += `---\n`;
             
             const metadata = {
                 chatName,
                 chatId,
                 extractedAt: new Date().toISOString(),
+                me: {
+                    userId: myUserId,
+                    displayName: myDisplayName
+                },
                 filter: {
                     mode: FILTER_CONFIG.mode,
                     label: filterLabel
@@ -510,6 +539,8 @@
                 
                 let contentText = "";
                 let audioFileName = null;
+                let audioBase64 = null;
+                let audioMimeType = null;
                 let imageFileName = null;
                 let isAudio = false;
                 let isImage = false;
@@ -575,6 +606,23 @@
                             }
 
                             const filename = `audio_${timestamp}_${cleanId}.${extension}`;
+                            
+                            try {
+                                if (typeof blob === 'string' && blob.startsWith('data:')) {
+                                    audioBase64 = blob.split(',')[1];
+                                } else if (blob instanceof Blob) {
+                                    const arrayBuffer = await blob.arrayBuffer();
+                                    const uint8Array = new Uint8Array(arrayBuffer);
+                                    let binary = '';
+                                    for (let i = 0; i < uint8Array.length; i++) {
+                                        binary += String.fromCharCode(uint8Array[i]);
+                                    }
+                                    audioBase64 = btoa(binary);
+                                }
+                                audioMimeType = msg.mimetype || 'audio/ogg';
+                            } catch (err) {
+                                DEBUG.error('AUDIO_BASE64', err);
+                            }
                             
                             if (typeof blob === 'string' && !blob.startsWith('data:')) {
                                 audioFolder.file(filename, blob, {base64: true});
@@ -662,9 +710,12 @@
                     id: msg.id,
                     timestamp: msg.t,
                     sender: sender,
+                    fromMe: !!msg.fromMe,
                     type: msg.type,
                     content: contentText,
                     audioFile: audioFileName,
+                    audioBase64: audioBase64,
+                    audioMimeType: audioMimeType,
                     imageFile: imageFileName
                 });
             }
