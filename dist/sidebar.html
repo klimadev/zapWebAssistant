@@ -132,7 +132,7 @@
       border-radius: 14px;
       padding: 4px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 4px;
       box-shadow: var(--shadow-soft);
       backdrop-filter: blur(6px);
@@ -749,6 +749,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="extract">Extrair</button>
       <button class="tab" data-tab="ia">Assistente IA</button>
+      <button class="tab" data-tab="config">Config</button>
     </div>
 
     <div class="tab-content active" id="tab-extract">
@@ -851,6 +852,32 @@
               <button id="btnSend" class="btn-send">Enviar</button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-config">
+      <div class="body-extract">
+        <div class="card">
+          <div class="card-title">Provedor IA (OpenAI-compatible)</div>
+          <p class="helper-text">Configure seu próprio provedor de API compatível com OpenAI Chat Completions. As alterações persistem no navegador.</p>
+          <div class="form-group">
+            <label class="label">URL Base da API</label>
+            <input type="url" id="configBaseUrl" class="input-field" placeholder="https://api.openai.com/v1">
+          </div>
+          <div class="form-group">
+            <label class="label">Chave da API</label>
+            <input type="password" id="configApiKey" class="input-field" placeholder="sk-...">
+          </div>
+          <div class="form-group">
+            <label class="label">Modelo Padrão</label>
+            <input type="text" id="configDefaultModel" class="input-field" placeholder="gpt-4o">
+          </div>
+          <div class="row">
+            <button id="btnLoadModels" class="btn-extract" style="flex:1">Carregar modelos</button>
+            <button id="btnSaveConfig" class="btn-extract" style="flex:1;background:linear-gradient(135deg,#16a34a,#15803d)">Salvar</button>
+          </div>
+          <div id="configStatus" class="helper-text" style="margin-top:4px">&nbsp;</div>
         </div>
       </div>
     </div>

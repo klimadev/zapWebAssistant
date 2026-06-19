@@ -45,15 +45,37 @@ const DEBUG = {
 DEBUG.separator('SIDEBAR');
 DEBUG.log('Inicializando…');
 
-// ── Config (via import.meta.env) ──────────────────────────────────
-const API_CONFIG = {
-  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'https://routerai.chamalead.com/v1',
+// ── Config (chrome.storage + fallback import.meta.env) ─────────────
+interface AiConfig {
+  baseUrl: string;
+  apiKey: string;
+  defaultModel: string;
+}
+
+const STORAGE_KEY = 'wpp_ai_config';
+
+const DEFAULT_CONFIG: AiConfig = {
+  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'https://api.openai.com/v1',
   apiKey: import.meta.env.VITE_API_KEY ?? '',
-  defaultModel: import.meta.env.VITE_DEFAULT_MODEL ?? 'gpt-5.4',
+  defaultModel: import.meta.env.VITE_DEFAULT_MODEL ?? 'gpt-4o-mini',
 };
 
-if (!API_CONFIG.apiKey) {
-  console.error('[SIDEBAR] VITE_API_KEY não definida. Configure .env ou VITE_API_KEY no build.');
+let aiConfig: AiConfig = { ...DEFAULT_CONFIG };
+
+async function loadConfig(): Promise<void> {
+  try {
+    const stored = await chrome.storage.sync.get(STORAGE_KEY);
+    if (stored[STORAGE_KEY]) {
+      aiConfig = { ...DEFAULT_CONFIG, ...stored[STORAGE_KEY] as Partial<AiConfig> };
+    }
+  } catch {
+    aiConfig = { ...DEFAULT_CONFIG };
+  }
+}
+
+async function saveConfig(config: AiConfig): Promise<void> {
+  aiConfig = config;
+  await chrome.storage.sync.set({ [STORAGE_KEY]: config });
 }
 
 // ── State ─────────────────────────────────────────────────────────
@@ -74,9 +96,9 @@ let speechRecognition: any = null;
 let speechTranscript = '';
 
 DEBUG.log('API Config', {
-  baseUrl: API_CONFIG.baseUrl,
-  defaultModel: API_CONFIG.defaultModel,
-  hasKey: API_CONFIG.apiKey.length > 0,
+  baseUrl: aiConfig.baseUrl,
+  defaultModel: aiConfig.defaultModel,
+  hasKey: aiConfig.apiKey.length > 0,
 });
 
 // ── Model Selector ────────────────────────────────────────────────
@@ -99,18 +121,18 @@ function selectModel(modelId: string) {
 
 function getSelectedModel(): string {
   const el = $<HTMLSelectElement>('modelSelect');
-  return el?.value ?? API_CONFIG.defaultModel;
+  return el?.value ?? aiConfig.defaultModel;
 }
 
 async function loadModels() {
-  if (!API_CONFIG.apiKey) {
+  if (!aiConfig.apiKey) {
     $<HTMLElement>('selectedModelName')!.textContent = 'Sem chave API';
     return;
   }
 
   try {
-    const response = await fetch(`${API_CONFIG.baseUrl}/models`, {
-      headers: { Authorization: `Bearer ${API_CONFIG.apiKey}` },
+    const response = await fetch(`${aiConfig.baseUrl}/models`, {
+      headers: { Authorization: `Bearer ${aiConfig.apiKey}` },
     });
     const data = (await response.json()) as { data?: Array<{ id: string }> };
     const menu = $<HTMLElement>('modelDropdownMenu');
@@ -167,7 +189,7 @@ async function loadModels() {
       }
     }
 
-    const firstId = availableModels[0]?.id ?? API_CONFIG.defaultModel;
+    const firstId = availableModels[0]?.id ?? aiConfig.defaultModel;
     selectModel(firstId);
     const nameSpan = $<HTMLElement>('selectedModelName');
     if (nameSpan) nameSpan.textContent = firstId;
@@ -471,11 +493,11 @@ async function callModelApi(
   };
   if (hasAudio) body.modalities = ['text', 'audio'];
 
-  const response = await fetch(`${API_CONFIG.baseUrl}${endpoint}`, {
+  const response = await fetch(`${aiConfig.baseUrl}${endpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${API_CONFIG.apiKey}`,
+      Authorization: `Bearer ${aiConfig.apiKey}`,
     },
     body: JSON.stringify(body),
     signal: controller.signal,
@@ -722,7 +744,7 @@ function stopRecording() {
   }
 }
 
-// ── Init ──────────────────────────────────────────────────────────
+// ── Config UI ─────────────────────────────────────────────────────
 function initTabs() {
   const tabs = document.querySelectorAll('.tab');
   const contents = document.querySelectorAll('.tab-content');
@@ -735,6 +757,78 @@ function initTabs() {
       contents.forEach((c) => c.classList.toggle('active', c.id === targetId));
     });
   });
+}
+
+function populateConfigForm() {
+  const baseUrlInput = $<HTMLInputElement>('configBaseUrl');
+  const apiKeyInput = $<HTMLInputElement>('configApiKey');
+  const modelInput = $<HTMLInputElement>('configDefaultModel');
+  if (baseUrlInput) baseUrlInput.value = aiConfig.baseUrl;
+  if (apiKeyInput) apiKeyInput.value = aiConfig.apiKey;
+  if (modelInput) modelInput.value = aiConfig.defaultModel;
+}
+
+function initConfig() {
+  const btnSave = $<HTMLElement>('btnSaveConfig');
+  const btnLoad = $<HTMLElement>('btnLoadModels');
+  const status = $<HTMLElement>('configStatus');
+
+  btnSave?.addEventListener('click', async () => {
+    const baseUrl = ($<HTMLInputElement>('configBaseUrl')?.value ?? '').replace(/\/+$/, '');
+    const apiKey = $<HTMLInputElement>('configApiKey')?.value ?? '';
+    const defaultModel = $<HTMLInputElement>('configDefaultModel')?.value ?? '';
+
+    if (!baseUrl) {
+      if (status) status.textContent = '⚠️ URL base é obrigatória.';
+      return;
+    }
+    if (!apiKey) {
+      if (status) status.textContent = '⚠️ Chave da API é obrigatória.';
+      return;
+    }
+
+    await saveConfig({ baseUrl, apiKey, defaultModel });
+    if (status) status.textContent = '✅ Configuração salva!';
+    setTimeout(() => { if (status) status.innerHTML = '&nbsp;'; }, 3000);
+    loadModels();
+  });
+
+  btnLoad?.addEventListener('click', async () => {
+    const baseUrl = ($<HTMLInputElement>('configBaseUrl')?.value ?? '').replace(/\/+$/, '');
+    const apiKey = $<HTMLInputElement>('configApiKey')?.value ?? '';
+
+    if (!baseUrl || !apiKey) {
+      if (status) status.textContent = '⚠️ Preencha URL e chave primeiro.';
+      return;
+    }
+
+    // temporariamente usa o que está no form p/ testar
+    const savedUrl = aiConfig.baseUrl;
+    const savedKey = aiConfig.apiKey;
+    aiConfig.baseUrl = baseUrl;
+    aiConfig.apiKey = apiKey;
+    if (status) status.textContent = '🔄 Carregando modelos…';
+    await loadModels().catch(() => {});
+    // restaura — só salva se clicar em Salvar
+    aiConfig.baseUrl = savedUrl;
+    aiConfig.apiKey = savedKey;
+  });
+
+  populateConfigForm();
+}
+
+// ── Init (async) ──────────────────────────────────────────────────
+async function main() {
+  await loadConfig();
+  initSidebar();
+  initConfig();
+  await loadModels();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => { main(); });
+} else {
+  main();
 }
 
 function initExtractMode() {
@@ -820,12 +914,3 @@ function initSidebar() {
   DEBUG.log('✅ Sidebar pronta');
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    initSidebar();
-    loadModels();
-  });
-} else {
-  initSidebar();
-  loadModels();
-}
