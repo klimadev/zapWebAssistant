@@ -1,0 +1,29 @@
+{
+  "name": "whatsapp-extractor-ia",
+  "version": "1.27.0",
+  "private": true,
+  "type": "module",
+  "description": "Extrator WhatsApp + Assistente IA (Chrome Extension Manifest V3)",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "lint": "tsc --noEmit && echo '✓ type-check ok'",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm clean"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@10.8.0",
+  "devDependencies": {
+    "@swc/core": "^1.15.41",
+    "chrome-types": "^0.1.429",
+    "terser": "^5.48.0",
+    "typescript": "^6.0.3",
+    "unplugin-swc": "^1.5.9",
+    "vite": "^8.0.16"
+  }
+}
