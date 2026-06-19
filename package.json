@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-extractor-ia",
-  "version": "1.28.0",
+  "version": "1.29.0",
   "private": true,
   "type": "module",
   "description": "Extrator WhatsApp + Assistente IA (Chrome Extension Manifest V3)",

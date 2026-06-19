@@ -53,9 +53,10 @@ interface AiConfig {
 }
 
 const STORAGE_KEY = 'wpp_ai_config';
+const STORAGE_DEBUG_KEY = 'wpp_debug_show';
 
 const DEFAULT_CONFIG: AiConfig = {
-  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'https://api.openai.com/v1',
+  baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://177.153.38.26:20128',
   apiKey: import.meta.env.VITE_API_KEY ?? '',
   defaultModel: import.meta.env.VITE_DEFAULT_MODEL ?? 'gpt-4o-mini',
 };
@@ -76,6 +77,20 @@ async function loadConfig(): Promise<void> {
 async function saveConfig(config: AiConfig): Promise<void> {
   aiConfig = config;
   await chrome.storage.sync.set({ [STORAGE_KEY]: config });
+}
+
+async function loadDebugConfig(): Promise<void> {
+  try {
+    const stored = await chrome.storage.sync.get(STORAGE_DEBUG_KEY);
+    DEBUG.showInChat = stored[STORAGE_DEBUG_KEY] === true;
+  } catch {
+    DEBUG.showInChat = false;
+  }
+}
+
+async function saveDebugConfig(enabled: boolean): Promise<void> {
+  DEBUG.showInChat = enabled;
+  await chrome.storage.sync.set({ [STORAGE_DEBUG_KEY]: enabled });
 }
 
 // ── State ─────────────────────────────────────────────────────────
@@ -134,10 +149,16 @@ async function loadModels() {
     const response = await fetch(`${aiConfig.baseUrl}/models`, {
       headers: { Authorization: `Bearer ${aiConfig.apiKey}` },
     });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({})) as { error?: { message?: string } };
+      throw new Error(errBody.error?.message ?? `HTTP ${response.status}`);
+    }
     const data = (await response.json()) as { data?: Array<{ id: string }> };
     const menu = $<HTMLElement>('modelDropdownMenu');
     const modelSelect = $<HTMLSelectElement>('modelSelect');
-    if (!menu || !data.data) return;
+    if (!menu || !data.data) {
+      throw new Error('Resposta inválida da API (esperado { data: [...] })');
+    }
 
     const sortedModels = data.data.map((m) => m.id).sort();
     const groups: { openai: string[]; google: string[]; qwen: string[]; other: string[] } = {
@@ -194,11 +215,21 @@ async function loadModels() {
     const nameSpan = $<HTMLElement>('selectedModelName');
     if (nameSpan) nameSpan.textContent = firstId;
 
+    const configStatus = $<HTMLElement>('configStatus');
+    if (configStatus) {
+      configStatus.textContent = `✅ ${data.data.length} modelos carregados`;
+      setTimeout(() => { configStatus.innerHTML = '&nbsp;'; }, 4000);
+    }
+
     DEBUG.log('Modelos carregados', { count: data.data.length });
   } catch (error) {
     DEBUG.error('loadModels', error);
     const nameSpan = $<HTMLElement>('selectedModelName');
     if (nameSpan) nameSpan.textContent = 'Erro';
+    const configStatus = $<HTMLElement>('configStatus');
+    if (configStatus) {
+      configStatus.textContent = `❌ Falha: ${(error as Error).message}`;
+    }
   }
 
   // Dropdown toggle + outside click
@@ -772,6 +803,16 @@ function initConfig() {
   const btnSave = $<HTMLElement>('btnSaveConfig');
   const btnLoad = $<HTMLElement>('btnLoadModels');
   const status = $<HTMLElement>('configStatus');
+  const debugCb = $<HTMLInputElement>('configShowDebug');
+
+  if (debugCb) {
+    debugCb.checked = DEBUG.showInChat;
+    debugCb.addEventListener('change', () => {
+      saveDebugConfig(debugCb.checked);
+      if (status) status.textContent = debugCb.checked ? '✅ Debug ativado' : '🔇 Debug desativado';
+      setTimeout(() => { if (status) status.innerHTML = '&nbsp;'; }, 2500);
+    });
+  }
 
   btnSave?.addEventListener('click', async () => {
     const baseUrl = ($<HTMLInputElement>('configBaseUrl')?.value ?? '').replace(/\/+$/, '');
@@ -820,6 +861,7 @@ function initConfig() {
 // ── Init (async) ──────────────────────────────────────────────────
 async function main() {
   await loadConfig();
+  await loadDebugConfig();
   initSidebar();
   initConfig();
   await loadModels();
