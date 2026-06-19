@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "lint": "tsc --noEmit && echo '✓ type-check ok'",
+    "test": "vitest run",
     "clean": "rm -rf dist",
     "prebuild": "pnpm clean"
   },
@@ -24,6 +25,7 @@
     "terser": "^5.48.0",
     "typescript": "^6.0.3",
     "unplugin-swc": "^1.5.9",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   }
 }

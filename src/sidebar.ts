@@ -4,6 +4,8 @@
 // ── Helpers (definir primeiro) ────────────────────────────────────
 const $ = <T extends HTMLElement>(id: string): T | null => document.getElementById(id) as T | null;
 
+import { escapeHtml, renderMarkdown, extractAssistantText, toChatCompletionsInput } from './utils';
+
 // ── Debug ─────────────────────────────────────────────────────────
 const DEBUG = {
   prefix: '[SIDEBAR]' as const,
@@ -289,62 +291,6 @@ function addChatMessage(text: string, isUser = false, isThinking = false): HTMLE
   return div;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function renderMarkdown(text: string): string {
-  const raw = String(text ?? '');
-  let html = escapeHtml(raw);
-
-  // Block-level
-  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-  // Headings
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  // Blockquote
-  html = html.replace(/^>\s?(.*)$/gm, '<blockquote>$1</blockquote>');
-  // Inline
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // Paragraphs
-  html = html.replace(/\n\n+/g, '</p><p>');
-  html = '<p>' + html + '</p>';
-
-  // Unordered list
-  html = html.replace(/(?:^|\n)([-*])\s+(.+)(?=(?:\n[-*]\s+)|\n\n|$)/g, (_match) => {
-    const items = _match
-      .trim()
-      .split(/\n/)
-      .map((line) => `<li>${line.replace(/^[-*]\s+/, '').trim()}</li>`)
-      .join('');
-    return `\n<ul>${items}</ul>`;
-  });
-
-  // Ordered list
-  html = html.replace(/(?:^|\n)(\d+)\.\s+(.+)(?=(?:\n\d+\.\s+)|\n\n|$)/g, (_match) => {
-    const items = _match
-      .trim()
-      .split(/\n/)
-      .map((line) => `<li>${line.replace(/^\d+\.\s+/, '').trim()}</li>`)
-      .join('');
-    return `\n<ol>${items}</ol>`;
-  });
-
-  // Cleanup empty wrappers
-  html = html.replace(/<p>\s*(<(h\d|ul|ol|pre|blockquote)[\s\S]*?>[\s\S]*?<\/(h\d|ul|ol|pre|blockquote)>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*<\/p>/g, '');
-
-  return html;
-}
-
 function updateExtractButtonState(isLoading: boolean) {
   const btn = $<HTMLButtonElement>('btnExtract');
   if (!btn) return;
@@ -431,81 +377,6 @@ async function startExtraction() {
 }
 
 // ── IA Assistant ───────────────────────────────────────────────────
-function extractAssistantText(data: Record<string, unknown>): string {
-  const choice = (data.choices as Array<Record<string, unknown>> | undefined)?.[0];
-  const content = choice?.message as Record<string, unknown> | undefined;
-  if (content?.content) {
-    const c = content.content;
-    if (typeof c === 'string') return c;
-    if (Array.isArray(c)) {
-      const text = (c as Array<Record<string, string>>)
-        .filter((p) => (p.type === 'text' || p.type === 'output_text') && p.text)
-        .map((p) => p.text)
-        .join('\n')
-        .trim();
-      if (text) return text;
-    }
-  }
-
-  if (typeof data.output_text === 'string' && data.output_text.trim()) return data.output_text;
-
-  if (Array.isArray(data.output)) {
-    const text = (data.output as Array<Record<string, unknown>>)
-      .flatMap((item) => (item.content as Array<Record<string, string>>) ?? [])
-      .filter((p) => p?.type === 'output_text' && p.text)
-      .map((p) => p.text)
-      .join('\n')
-      .trim();
-    if (text) return text;
-  }
-
-  return '';
-}
-
-function toChatCompletionsInput(
-  messages: Array<{ role: string; content: string | unknown[] }>,
-): Array<{ role: string; content: unknown }> {
-  return messages.map((msg) => {
-    if (msg.role === 'system') return { role: 'system', content: msg.content };
-
-    const role = msg.role === 'assistant' ? 'assistant' : 'user';
-
-    if (typeof msg.content === 'string') {
-      return { role, content: msg.content };
-    }
-
-    if (Array.isArray(msg.content)) {
-      const contentParts = (msg.content as Array<Record<string, unknown>>)
-        .map((part) => {
-          if (!part?.type) return null;
-          if (part.type === 'input_audio') {
-            return {
-              type: 'input_audio',
-              audio: {
-                data: ((part as any).input_file?.data ?? (part as any).audio ?? (part as any).data) as string,
-              },
-            };
-          }
-          if (part.type === 'input_text' || part.type === 'output_text' || part.type === 'text') {
-            return { type: 'text', text: (part as Record<string, string>).text ?? '' };
-          }
-          if (part.type === 'input_file') {
-            return { type: 'input_file', file_data: (part.input_file as Record<string, string>)?.data ?? part.data ?? '' };
-          }
-          return null;
-        })
-        .filter(Boolean);
-
-      return {
-        role,
-        content: contentParts.length > 0 ? contentParts : [{ type: 'text', text: '' }],
-      };
-    }
-
-    return { role, content: String(msg.content ?? '') };
-  });
-}
-
 async function callModelApi(
   messages: Array<{ role: string; content: string | unknown[] }>,
   hasAudio: boolean,
@@ -775,6 +646,54 @@ function stopRecording() {
   }
 }
 
+// ── Connection Test ────────────────────────────────────────────────
+interface TestResult {
+  models: { ok: boolean; status: string; count: number };
+  chat: { ok: boolean; status: string; latency: number };
+}
+
+async function testConnection(baseUrl: string, apiKey: string): Promise<TestResult> {
+  const result: TestResult = { models: { ok: false, status: '', count: 0 }, chat: { ok: false, status: '', latency: 0 } };
+
+  // Test 1: GET /models
+  try {
+    const t0 = performance.now();
+    const res = await fetch(`${baseUrl}/models`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (res.ok) {
+      const data = await res.json() as { data?: Array<unknown> };
+      result.models.ok = true;
+      result.models.status = `HTTP ${res.status}`;
+      result.models.count = data.data?.length ?? 0;
+    } else {
+      const errBody = await res.json().catch(() => ({})) as { error?: { message?: string } };
+      result.models.status = errBody.error?.message ?? `HTTP ${res.status}`;
+    }
+  } catch (e) {
+    result.models.status = (e as Error).message;
+  }
+
+  // Test 2: POST /chat/completions (ping simples)
+  try {
+    const t0 = performance.now();
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: '', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    result.chat.latency = Math.round(performance.now() - t0);
+    result.chat.ok = res.ok;
+    result.chat.status = res.ok ? `HTTP ${res.status} (${result.chat.latency}ms)` : `HTTP ${res.status}`;
+  } catch (e) {
+    result.chat.status = (e as Error).message;
+  }
+
+  return result;
+}
+
 // ── Config UI ─────────────────────────────────────────────────────
 function initTabs() {
   const tabs = document.querySelectorAll('.tab');
@@ -832,6 +751,31 @@ function initConfig() {
     if (status) status.textContent = '✅ Configuração salva!';
     setTimeout(() => { if (status) status.innerHTML = '&nbsp;'; }, 3000);
     loadModels();
+  });
+
+  const btnTest = $<HTMLElement>('btnTestConn');
+
+  btnTest?.addEventListener('click', async () => {
+    const baseUrl = ($<HTMLInputElement>('configBaseUrl')?.value ?? '').replace(/\/+$/, '');
+    const apiKey = $<HTMLInputElement>('configApiKey')?.value ?? '';
+    if (!baseUrl || !apiKey) {
+      if (status) status.textContent = '⚠️ Preencha URL e chave primeiro.';
+      return;
+    }
+    if (status) {
+      status.textContent = '🔄 Testando…';
+      (btnTest as HTMLButtonElement).disabled = true;
+    }
+    const r = await testConnection(baseUrl, apiKey);
+    const lines: string[] = [];
+    lines.push(`📡 Models: ${r.models.ok ? '✅' : '❌'} ${r.models.status}${r.models.count ? ` (${r.models.count} modelos)` : ''}`);
+    lines.push(`💬 Chat: ${r.chat.ok ? '✅' : '❌'} ${r.chat.status}`);
+    if (status) {
+      status.innerHTML = lines.join('<br>');
+      setTimeout(() => { status.innerHTML = '&nbsp;'; }, 6000);
+    }
+    DEBUG.log('Teste conexão', r);
+    (btnTest as HTMLButtonElement).disabled = false;
   });
 
   btnLoad?.addEventListener('click', async () => {
