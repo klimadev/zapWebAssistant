@@ -4,7 +4,7 @@
 // ── Helpers (definir primeiro) ────────────────────────────────────
 const $ = <T extends HTMLElement>(id: string): T | null => document.getElementById(id) as T | null;
 
-import { escapeHtml, renderMarkdown, extractAssistantText, toChatCompletionsInput } from './utils';
+import { escapeHtml, renderMarkdown, toChatCompletionsInput } from './utils';
 
 // ── Debug ─────────────────────────────────────────────────────────
 const DEBUG = {
@@ -442,6 +442,65 @@ async function callModelApi(
   return response.json() as Promise<Record<string, unknown>>;
 }
 
+async function callModelApiStream(
+  messages: Array<{ role: string; content: string | unknown[] }>,
+  hasAudio: boolean,
+  timeoutMs: number,
+  onChunk: (fullText: string) => void,
+): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort('Timeout excedido'), timeoutMs);
+
+  const selectedModel = getSelectedModel();
+  const body: Record<string, unknown> = {
+    model: selectedModel,
+    messages: toChatCompletionsInput(messages),
+    temperature: 0.7,
+    stream: true,
+  };
+  if (hasAudio) body.modalities = ['text', 'audio'];
+
+  const response = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${aiConfig.apiKey}`,
+    },
+    body: JSON.stringify(body),
+    signal: controller.signal,
+  });
+
+  clearTimeout(timeoutId);
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({})) as { error?: { message?: string } };
+    throw new Error(errBody.error?.message ?? `Erro API: ${response.status}`);
+  }
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let result = '';
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6).trim();
+      if (data === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(data);
+        const delta = parsed.choices?.[0]?.delta?.content;
+        if (delta) { result += delta; onChunk(result); }
+      } catch { /* chunk incompleto */ }
+    }
+  }
+  return result;
+}
+
 function buildContextText(): string {
   if (!currentContext) return '';
 
@@ -562,20 +621,37 @@ Agora, responda à próxima mensagem do usuário.`,
           : userMessage,
     });
 
-    const data = await callModelApi(messages, audioContents.length > 0, audioContents.length > 0 ? 180_000 : 30_000);
+    const iaResponse = await callModelApiStream(
+      messages,
+      audioContents.length > 0,
+      audioContents.length > 0 ? 180_000 : 30_000,
+      (text) => {
+        if (thinkingMsg) {
+          thinkingMsg.classList.remove('thinking');
+          thinkingMsg.classList.add('md');
+          // ponytail: replace inline, no extra DOM node
+          thinkingMsg.innerHTML = renderMarkdown(text);
+        }
+      },
+    );
 
-    const iaResponse = extractAssistantText(data) || 'Desculpe, não consegui processar sua mensagem.';
-
-    // Remove o "Pensando…" e mostra resposta real
-    if (thinkingMsg) thinkingMsg.remove();
-    addChatMessage(iaResponse, false);
+    if (thinkingMsg) {
+      thinkingMsg.classList.remove('thinking');
+      thinkingMsg.classList.add('md');
+      thinkingMsg.innerHTML = renderMarkdown(iaResponse);
+    }
 
     chatHistory.push({ role: 'user', content: userMessage });
     chatHistory.push({ role: 'assistant', content: iaResponse });
   } catch (error) {
     DEBUG.error('CATCH_ERROR', error);
-    if (thinkingMsg) thinkingMsg.remove();
-    addChatMessage(`❌ Erro: ${(error as Error).message}`, false);
+    if (thinkingMsg) {
+      const errDiv = document.createElement('div');
+      errDiv.textContent = `❌ Erro: ${(error as Error).message}`;
+      thinkingMsg.replaceWith(errDiv);
+    } else {
+      addChatMessage(`❌ Erro: ${(error as Error).message}`, false);
+    }
   } finally {
     isChatting = false;
     updateSendButtonState(false);
