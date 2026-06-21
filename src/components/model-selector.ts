@@ -125,7 +125,7 @@ export class ModelSelector {
   async loadModels(): Promise<void> {
     if (!this.config.apiKey) {
       this.nameSpan = this.container.querySelector('#selectedModelName') ?? this.nameSpan;
-      if (this.nameSpan) this.nameSpan.textContent = 'Sem chave API';
+      if (this.nameSpan) this.nameSpan.textContent = 'Configure uma chave de API na aba Config';
       return;
     }
 
@@ -173,6 +173,7 @@ export class ModelSelector {
           item.className = 'model-item';
           item.dataset.id = id;
           item.textContent = id;
+          item.title = id;
           item.onclick = () => this.select(id);
           this.itemsContainer.appendChild(item);
         }
@@ -276,7 +277,6 @@ export class ModelSelector {
       return;
     }
 
-    const items = Array.from(this.itemsContainer.querySelectorAll<HTMLElement>('.model-item[style*="display: none"]')) as never[];
     const visible = Array.from(this.itemsContainer.querySelectorAll<HTMLElement>('.model-item:not([style*="display: none"])'));
     if (visible.length === 0) return;
 

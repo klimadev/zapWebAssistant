@@ -4,6 +4,33 @@
 // ── Helpers (definir primeiro) ────────────────────────────────────
 const $ = <T extends HTMLElement>(id: string): T | null => document.getElementById(id) as T | null;
 
+// ── Icon helpers ─────────────────────────────────────────────────
+/** Returns SVG string for innerHTML assignment */
+function iconHTML(fn: IconFn, cls?: string): string { return fn(cls); }
+/** Returns SVG element for DOM operations */
+function iconElem(fn: IconFn, cls?: string): SVGSVGElement { return createIcon(fn, cls); }
+/** Replace button contents with icon + optional label text */
+function setBtnIcon(btn: HTMLElement, iconFn: IconFn, text?: string): void {
+  btn.innerHTML = iconHTML(iconFn);
+  if (text) { const span = document.createElement('span'); span.textContent = text; btn.appendChild(span); }
+}
+
+// ── Custom confirm dialog ───────────────────────────────────────
+function showConfirm(message: string): Promise<boolean> {
+  return new Promise(resolve => {
+    const overlay = $<HTMLElement>('confirmOverlay');
+    const msgEl = $<HTMLElement>('confirmMessage');
+    const yesBtn = $<HTMLElement>('confirmYes');
+    const noBtn = $<HTMLElement>('confirmNo');
+    if (!overlay || !msgEl || !yesBtn || !noBtn) { resolve(confirm(message)); return; }
+    msgEl.textContent = message;
+    overlay.style.display = 'flex';
+    const cleanup = () => { overlay.style.display = 'none'; };
+    yesBtn.onclick = () => { cleanup(); resolve(true); };
+    noBtn.onclick = () => { cleanup(); resolve(false); };
+  });
+}
+
 import { escapeHtml, renderMarkdown, toChatCompletionsInput, extractAssistantText } from './utils';
 import {
   loadAiConfig, saveAiConfig, loadAllContexts, saveContext,
@@ -12,6 +39,8 @@ import {
   StorageKeys, type AiConfig, type ExtractedContext, type ChatMessage,
 } from './utils/storage';
 import { ModelSelector } from './components/model-selector';
+import { createIcon, IconMic, IconStop, IconCopy, IconRefresh, IconDownload, IconCheck, IconError, IconWarning, IconMoon, IconSun, IconSearch, IconSparkles, IconBarChart, IconHeadphones, IconDoc, IconList, IconTrash, IconClose, IconSettings, IconSend, IconArrowRight, IconContext, IconInfo, IconAttach, IconMenu, IconW } from './utils/icons';
+import type { IconFn } from './utils/icons';
 
 // ── Debug ─────────────────────────────────────────────────────────
 const DEBUG = {
@@ -116,162 +145,28 @@ DEBUG.log('API Config', {
   hasKey: aiConfig.apiKey.length > 0,
 });
 
-// ── Model Selector (legacy body — replaced by ModelSelector component) ───
-// ponytail: kept as dead-code stub so grep references don't break; shims above delegate
-async function _loadModels_legacy() {
-  if (!aiConfig.apiKey) {
-    $<HTMLElement>('selectedModelName')!.textContent = 'Sem chave API';
-    return;
-  }
-
-  try {
-    const response = await fetch(`${aiConfig.baseUrl}/models`, {
-      headers: { Authorization: `Bearer ${aiConfig.apiKey}` },
-    });
-    if (!response.ok) {
-      const errBody = await response.json().catch(() => ({})) as { error?: { message?: string } };
-      throw new Error(errBody.error?.message ?? `HTTP ${response.status}`);
-    }
-    const data = (await response.json()) as { data?: Array<{ id: string }> };
-    const menu = $<HTMLElement>('modelDropdownMenu');
-    const modelSelect = $<HTMLSelectElement>('modelSelect');
-    if (!menu || !data.data) {
-      throw new Error('Resposta inválida da API (esperado { data: [...] })');
-    }
-
-    const sortedModels = data.data.map((m) => m.id).sort();
-    const groups: { openai: string[]; google: string[]; qwen: string[]; other: string[] } = {
-      openai: [],
-      google: [],
-      qwen: [],
-      other: [],
-    };
-
-    const providerLabels: Record<string, string> = {
-      openai: 'OpenAI',
-      google: 'Google',
-      qwen: 'Qwen',
-      other: 'Outros',
-    };
-
-    for (const id of sortedModels) {
-      if (id.startsWith('gpt-')) groups.openai.push(id);
-      else if (id.startsWith('gemini')) groups.google.push(id);
-      else if (id.startsWith('coder')) groups.qwen.push(id);
-      else groups.other.push(id);
-    }
-
-    menu.innerHTML = '';
-    if (modelSelect) modelSelect.innerHTML = '';
-    availableModels = [];
-
-    // Search input
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = '🔍 Buscar modelo…';
-    searchInput.className = 'model-search-input';
-    menu.appendChild(searchInput);
-
-    const itemsContainer = document.createElement('div');
-    itemsContainer.className = 'model-items-container';
-    menu.appendChild(itemsContainer);
-
-    for (const [provider, ids] of Object.entries(groups)) {
-      if (ids.length === 0) continue;
-      const header = document.createElement('div');
-      header.className = 'model-provider';
-      header.textContent = providerLabels[provider] ?? provider;
-      itemsContainer.appendChild(header);
-
-      for (const id of ids) {
-        availableModels.push({ id, provider });
-        if (modelSelect) {
-          const opt = document.createElement('option');
-          opt.value = id;
-          opt.textContent = id;
-          modelSelect.appendChild(opt);
-        }
-        const item = document.createElement('div');
-        item.className = 'model-item';
-        item.dataset.id = id;
-        item.textContent = id;
-        item.onclick = () => selectModel(id);
-        itemsContainer.appendChild(item);
-      }
-    }
-
-    // Search filter
-    searchInput.addEventListener('input', () => {
-      const q = searchInput.value.toLowerCase();
-      let curProvider: HTMLElement | null = null;
-      for (let i = 0; i < itemsContainer.children.length; i++) {
-        const el = itemsContainer.children[i] as HTMLElement;
-        if (el.classList.contains('model-provider')) {
-          curProvider = el;
-          (el as HTMLElement).style.display = 'none';
-        } else if (el.classList.contains('model-item')) {
-          const match = !q || (el.dataset.id?.toLowerCase().includes(q) ?? false);
-          el.style.display = match ? '' : 'none';
-          if (match && curProvider) curProvider.style.display = '';
-        }
-      }
-    });
-
-    const firstId = availableModels[0]?.id ?? aiConfig.defaultModel;
-    selectModel(firstId);
-    const nameSpan = $<HTMLElement>('selectedModelName');
-    if (nameSpan) nameSpan.textContent = firstId;
-
-    const configStatus = $<HTMLElement>('configStatus');
-    if (configStatus) {
-      configStatus.textContent = `✅ ${data.data.length} modelos carregados`;
-      setTimeout(() => { configStatus.innerHTML = '&nbsp;'; }, 4000);
-    }
-
-    DEBUG.log('Modelos carregados', { count: data.data.length });
-  } catch (error) {
-    DEBUG.error('loadModels', error);
-    const nameSpan = $<HTMLElement>('selectedModelName');
-    if (nameSpan) nameSpan.textContent = 'Erro';
-    const configStatus = $<HTMLElement>('configStatus');
-    if (configStatus) {
-      configStatus.textContent = `❌ Falha: ${(error as Error).message}`;
-    }
-  }
-
-  // Dropdown toggle + outside click
-  const btn = $<HTMLElement>('modelDropdownBtn');
-  const menu = $<HTMLElement>('modelDropdownMenu');
-  if (btn && menu) {
-    btn.onclick = () => {
-      menu.classList.toggle('open');
-      btn.classList.toggle('open');
-    };
-    document.addEventListener('click', (e) => {
-      if (!(e.target as HTMLElement).closest('#modelSelectorContainer')) {
-        menu.classList.remove('open');
-        btn.classList.remove('open');
-      }
-    });
-  }
-}
 
 // ── UI Functions ──────────────────────────────────────────────────
-function addLog(message: string, isError = false, isSuccess = false) {
+function addLog(message: string, isError = false, isSuccess = false, iconFn?: IconFn) {
   const status = $<HTMLElement>('status');
   if (!status) return;
 
   const entry = document.createElement('div');
   entry.className = `log-entry${isError ? ' error' : ''}${isSuccess ? ' success' : ''}`;
-  entry.textContent = message;
+  if (iconFn) {
+    entry.innerHTML = iconHTML(iconFn) + ' ' + escapeHtml(message);
+  } else {
+    entry.textContent = message;
+  }
   status.appendChild(entry);
   status.scrollTop = status.scrollHeight;
 
   const globalStatus = $<HTMLElement>('globalStatus');
   if (globalStatus) {
-    if (isError) globalStatus.textContent = 'Erro na execução';
-    else if (isSuccess) globalStatus.textContent = 'Extração concluída';
-    else globalStatus.textContent = message.replace(/^[^\wÀ-ÿ]+/, '').slice(0, 42);
+    const clean = message.replace(/^[^\wÀ-ÿ\s]+/, '').trim().slice(0, 42);
+    if (isError) globalStatus.textContent = clean || 'Erro na execução';
+    else if (isSuccess) globalStatus.textContent = clean || 'Concluído';
+    else globalStatus.textContent = clean;
   }
 }
 
@@ -356,7 +251,7 @@ async function startExtraction() {
 
   try {
     const filterConfig = getFilterConfig();
-    addLog(`🚀 Iniciando extração (${getModeLabel(filterConfig.mode as string)})…`);
+    addLog(`Iniciando extração (${getModeLabel(filterConfig.mode as string)})…`, false, false, IconArrowRight);
 
     filterConfig.includeAudio = includeAudio;
     filterConfig.includeImage = includeImage;
@@ -371,10 +266,10 @@ async function startExtraction() {
       throw new Error((response?.error as string) ?? 'Erro desconhecido');
     }
 
-    addLog('💉 Extração iniciada!');
+    addLog('Extração enviada para processamento.', false, false, IconCheck);
   } catch (error) {
     DEBUG.error('START_EXTRACTION', error);
-    addLog(`❌ ${(error as Error).message}`, true);
+    addLog((error as Error).message, true);
     addLog('Certifique-se de estar na aba do WhatsApp Web.', true);
     updateExtractButtonState(false);
     isExtracting = false;
@@ -550,7 +445,7 @@ async function sendToIA() {
   }
 
   addChatMessage(userMessage, true);
-  const thinkingMsg = addChatMessage('🤔 Pensando…', false, true);
+  const thinkingMsg = addChatMessage('Pensando…', false, true);
 
   // Build messages outside try so catch can access for retry
   const messages: ChatMessage[] = [];
@@ -662,7 +557,7 @@ Agora, responda à próxima mensagem do usuário.`,
 
     // Save chat history per context
     if (activeContextKey) {
-      await saveChatHistory(activeContextKey, chatHistory);
+      saveChatHistory(activeContextKey, chatHistory).catch(err => DEBUG.error('SAVE_CHAT_HISTORY', err));
     }
   } catch (error) {
     DEBUG.error('CATCH_ERROR', error);
@@ -670,10 +565,10 @@ Agora, responda à próxima mensagem do usuário.`,
 
     // Specific error handling
     if (msg.includes('401') || msg.includes('Unauthorized') || msg.includes('API key')) {
-      addChatMessage('❌ **API key inválida ou expirada.** [Ir para Config](/#config)', false);
+      addChatMessage('**API key inválida ou expirada.** [Ir para Config](/#config)', false);
     } else if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Too Many Requests')) {
-      addChatMessage('❌ **Muitas requisições.** Aguarde um momento e tente novamente.', false);
-      addLog('⏳ Tentando novamente em 2s…');
+      addChatMessage('**Muitas requisições.** Aguarde um momento e tente novamente.', false);
+      addLog('Tentando novamente em 2s…', false, false, IconRefresh);
       await new Promise(r => setTimeout(r, 2000));
       try {
         const data = await callModelApi(messages, audioContents.length > 0, 30_000);
@@ -685,7 +580,7 @@ Agora, responda à próxima mensagem do usuário.`,
         }
         chatHistory.push({ role: 'user', content: userMessage });
         chatHistory.push({ role: 'assistant', content: retryText });
-        if (activeContextKey) await saveChatHistory(activeContextKey, chatHistory);
+        if (activeContextKey) saveChatHistory(activeContextKey, chatHistory).catch(err => DEBUG.error('SAVE_CHAT_HISTORY', err));
         isChatting = false;
         updateSendButtonState(false);
         hideStopButton();
@@ -693,18 +588,18 @@ Agora, responda à próxima mensagem do usuário.`,
         return;
       } catch { /* ignore retry failure */ }
     } else if (msg.includes('TypeError') || msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-      addChatMessage('❌ **Sem conexão com a internet.** Verifique sua rede.', false);
+      addChatMessage('**Sem conexão com a internet.** Verifique sua rede.', false);
     } else if (msg.includes('500') || msg.includes('5') || msg.includes('server')) {
-      addChatMessage('❌ **Erro no servidor da API.** Tente novamente mais tarde.', false);
+      addChatMessage('**Erro no servidor da API.** Tente novamente mais tarde.', false);
     }
 
     if (thinkingMsg) {
       const errDiv = document.createElement('div');
       errDiv.className = 'message ia';
-      errDiv.textContent = `❌ Erro: ${(error as Error).message}`;
+      errDiv.textContent = `Erro: ${(error as Error).message}`;
       thinkingMsg.replaceWith(errDiv);
     } else {
-      addChatMessage(`❌ Erro: ${(error as Error).message}`, false);
+      addChatMessage(`Erro: ${(error as Error).message}`, false);
     }
   } finally {
     isChatting = false;
@@ -768,7 +663,7 @@ async function toggleRecording() {
       isRecording = false;
       if (btnMic) {
         btnMic.classList.remove('recording');
-        btnMic.textContent = '🎤';
+        btnMic.innerHTML = IconMic();
       }
 
       if (text) {
@@ -777,21 +672,21 @@ async function toggleRecording() {
           input.value = text;
           autoResizeTextarea(input);
         }
-        addChatMessage('🎤 Transcrição local concluída.', false);
+        addChatMessage('Transcrição local concluída.', false);
         sendToIA();
       } else {
-        addChatMessage('⚠️ Não consegui transcrever. Tente falar mais próximo do microfone.', false);
+        addChatMessage('Não consegui transcrever. Tente falar mais próximo do microfone.', false);
       }
     };
 
     speechRecognition.start();
     isRecording = true;
     btnMic?.classList.add('recording');
-    if (btnMic) btnMic.textContent = '⏹';
+    if (btnMic) btnMic.innerHTML = IconStop();
     DEBUG.log('Gravação iniciada');
   } catch (error) {
     DEBUG.error('RECORD_START', error);
-    addChatMessage('❌ Erro ao acessar microfone. Verifique as permissões.', false);
+    addChatMessage('Erro ao acessar microfone. Verifique as permissões.', false);
   }
 }
 
@@ -802,7 +697,7 @@ function stopRecording() {
     const btnMic = $<HTMLElement>('btnMic');
     if (btnMic) {
       btnMic.classList.remove('recording');
-      btnMic.textContent = '🎤';
+      btnMic.innerHTML = IconMic();
     }
   }
 }
@@ -830,7 +725,7 @@ function renderContextSelector() {
   if (!container) return;
   const list = getContextList();
   if (list.length === 0) {
-    container.innerHTML = '<div class="helper-text" style="padding:6px 0">Nenhum contexto extraído</div>';
+    container.innerHTML = '<div class="helper-text" style="padding:6px 0">Nenhum contexto disponível. Extraia uma conversa primeiro.</div>';
     return;
   }
   container.innerHTML = list.map(ctx => {
@@ -875,14 +770,17 @@ function switchContext(key: string) {
   if (!ctx) return;
   activeContextKey = key;
   currentContext = ctx as any;
-  // load chat history for this context
-  loadChatHistory(key).then(h => { chatHistory = h; });
+  // load chat history for this context (guard against storage failure)
+  loadChatHistory(key).then(h => { chatHistory = h; }).catch(err => {
+    DEBUG.error('SWITCH_CONTEXT_LOAD_HISTORY', err);
+    chatHistory = [];
+  });
   renderContextSelector();
   updateChatDisplay();
   // update status
   const gs = $<HTMLElement>('globalStatus');
   if (gs) gs.textContent = `Contexto: ${ctx.chatName}`;
-  addLog(`📂 Switch para: ${ctx.chatName}`);
+  addLog(`Contexto ativado: ${ctx.chatName}`, false, false, IconArrowRight);
 }
 
 function updateChatDisplay() {
@@ -914,18 +812,18 @@ async function onExtractionComplete(context: Record<string, any>) {
   const ctx = context as unknown as ExtractedContext;
   const key = ctx.chatId || generateContextKey(ctx.chatName || 'chat');
   ctx.chatId = key;
-  await saveContext(key, ctx);
+  try { await saveContext(key, ctx); } catch (err) { DEBUG.error('SAVE_CONTEXT', err); }
   contexts.set(key, ctx);
   activeContextKey = key;
   currentContext = ctx as any;
   chatHistory = [];
-  await saveChatHistory(key, []);
+  try { await saveChatHistory(key, []); } catch (err) { DEBUG.error('SAVE_CHAT_HISTORY', err); }
   renderContextSelector();
   updateChatDisplay();
-  addLog('✅ Contexto salvo e pronto para chat!', false, true);
+  addLog('Contexto salvo e pronto para chat!', false, true, IconCheck);
   // auto-transcribe if enabled
   if (preferences?.autoTranscribe) {
-    addLog('🎤 Transcrevendo áudios automaticamente...');
+    addLog('Transcrevendo áudios automaticamente...', false, false, IconHeadphones);
     const btn = $<HTMLElement>('btnTranscribe');
     if (btn) btn.click();
   }
@@ -940,7 +838,7 @@ function applyTheme(theme: 'light' | 'dark' | 'system') {
     html.dataset.theme = theme;
   }
   const btn = $<HTMLElement>('btnTheme');
-  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  if (btn) btn.innerHTML = theme === 'dark' ? IconSun() : theme === 'light' ? IconMoon() : IconSettings('icon dim');
 }
 
 async function toggleTheme() {
@@ -948,7 +846,7 @@ async function toggleTheme() {
   const next = current === 'dark' ? 'light' : current === 'light' ? 'system' : 'dark';
   preferences = await savePreferences({ theme: next });
   applyTheme(next);
-  addLog(`🎨 Tema: ${next === 'dark' ? 'escuro' : next === 'light' ? 'claro' : 'sistema'}`);
+  addLog(`Tema alterado para ${next === 'dark' ? 'escuro' : next === 'light' ? 'claro' : 'sistema'}`);
 }
 
 // ── Keyboard Shortcuts ───────────────────────────────────────────
@@ -1048,7 +946,9 @@ function performSearch(query: string): void {
   if (searchResults.length === 0) {
     container.innerHTML = `<div class="helper-text">Nenhuma mensagem encontrada para: "${escapeHtml(query)}"</div>`;
   } else {
-    container.innerHTML = searchResults.slice(0, 50).map(r => {
+    const LIMIT = 50;
+    const showing = searchResults.slice(0, LIMIT);
+    container.innerHTML = showing.map(r => {
       const idx = r.content.toLowerCase().indexOf(q);
       let display = escapeHtml(r.content);
       if (idx !== -1) {
@@ -1064,6 +964,9 @@ function performSearch(query: string): void {
         <span class="search-time">${time}</span>
       </div>`;
     }).join('');
+    if (searchResults.length > LIMIT) {
+      container.insertAdjacentHTML('beforeend', `<div class="helper-text" style="padding:4px 0;text-align:center">… e mais ${searchResults.length - LIMIT} resultados. Refine sua busca.</div>`);
+    }
     container.querySelectorAll('.search-result-item').forEach((el, i) => {
       const result = searchResults[i];
       if (result) el.addEventListener('click', () => showMessageContext(result));
@@ -1134,9 +1037,9 @@ function addChatActions(div: HTMLElement, text: string) {
   const actions = document.createElement('div');
   actions.className = 'chat-actions-bar';
   actions.innerHTML = `
-    <button class="chat-action-btn" data-action="copy" title="Copiar">📋</button>
-    <button class="chat-action-btn" data-action="regenerate" title="Regenerar">🔄</button>
-    <button class="chat-action-btn" data-action="export" title="Exportar TXT">📥</button>
+    <button class="chat-action-btn" data-action="copy" title="Copiar">${IconCopy()}</button>
+    <button class="chat-action-btn" data-action="regenerate" title="Regenerar">${IconRefresh()}</button>
+    <button class="chat-action-btn" data-action="export" title="Exportar TXT">${IconDownload()}</button>
   `;
   div.appendChild(actions);
 
@@ -1144,8 +1047,8 @@ function addChatActions(div: HTMLElement, text: string) {
     try {
       await navigator.clipboard.writeText(text);
       const btn = actions.querySelector('[data-action="copy"]')!;
-      btn.textContent = '✅';
-      setTimeout(() => { btn.textContent = '📋'; }, 1500);
+      btn.innerHTML = IconCheck();
+      setTimeout(() => { btn.innerHTML = IconCopy(); }, 1500);
     } catch { /* ignore */ }
   });
 
@@ -1207,14 +1110,14 @@ async function quickSummary(type: string) {
 
   const input = $<HTMLTextAreaElement>('chatInput');
   if (input) input.value = msg;
-  addLog(`📝 Gerando ${label.toLowerCase()}...`);
+  addLog(`Gerando ${label.toLowerCase()}...`, false, false, IconDoc);
   await sendToIA();
 }
 
 // ── Conversation Stats ───────────────────────────────────────────
 function showConversationStats() {
   if (!currentContext?.messages) {
-    addLog('⚠️ Nenhum contexto ativo para gerar estatísticas.', true);
+    addLog('Nenhum contexto ativo para gerar estatísticas.', true, false, IconWarning);
     return;
   }
   const msgs = currentContext.messages as Array<Record<string, unknown>>;
@@ -1262,16 +1165,16 @@ function showConversationStats() {
   }).join('\n');
 
   const statsText = [
-    `📊 **Estatísticas da Conversa**`,
+    `**Estatísticas da Conversa**`,
     ``,
-    `📝 **Total de mensagens:** ${total}`,
+    `**Total de mensagens:** ${total}`,
     ``,
     `**Remetentes:**`,
     ...senderPct.map(s => `  • ${escapeHtml(s.name)}: ${s.count} (${s.pct}%)`),
     ``,
-    audioCount > 0 ? `🎵 **Áudios:** ${audioCount}` : ``,
-    imageCount > 0 ? `🖼️ **Imagens:** ${imageCount}` : ``,
-    minTs < Infinity ? `📅 **Período:** ${new Date(minTs * 1000).toLocaleDateString('pt-BR')} — ${new Date(maxTs * 1000).toLocaleDateString('pt-BR')}` : ``,
+    audioCount > 0 ? `**Áudios:** ${audioCount}` : ``,
+    imageCount > 0 ? `**Imagens:** ${imageCount}` : ``,
+    minTs < Infinity ? `**Período:** ${new Date(minTs * 1000).toLocaleDateString('pt-BR')} — ${new Date(maxTs * 1000).toLocaleDateString('pt-BR')}` : ``,
     ``,
     `**Atividade por hora:**`,
     `\`\`\``,
@@ -1299,7 +1202,7 @@ function renderTranscribeButton() {
   const audioMsgs = (currentContext.messages as Array<Record<string, unknown>>).filter(m => m.audioBase64);
   if (audioMsgs.length === 0) { el.style.display = 'none'; return; }
   el.style.display = '';
-  el.textContent = `🎤 Transcrever áudios (${audioMsgs.length})`;
+  el.innerHTML = `${IconHeadphones()} Transcrever áudios (${audioMsgs.length})`;
 }
 interface TestResult {
   models: { ok: boolean; status: string; count: number };
@@ -1383,7 +1286,7 @@ function initConfig() {
     debugCb.addEventListener('change', async () => {
       DEBUG.showInChat = debugCb.checked;
       await chrome.storage.local.set({ wpp_debug_show: debugCb.checked });
-      if (status) status.textContent = debugCb.checked ? '✅ Debug ativado' : '🔇 Debug desativado';
+      if (status) status.innerHTML = debugCb.checked ? `${IconCheck()} Debug ativado` : `${IconInfo()} Debug desativado`;
       setTimeout(() => { if (status) status.innerHTML = '&nbsp;'; }, 2500);
     });
   }
@@ -1394,18 +1297,18 @@ function initConfig() {
     const defaultModel = $<HTMLInputElement>('configDefaultModel')?.value ?? '';
 
     if (!baseUrl) {
-      if (status) status.textContent = '⚠️ URL base é obrigatória.';
+      if (status) status.innerHTML = `${IconWarning()} URL base é obrigatória.`;
       return;
     }
     if (!apiKey) {
-      if (status) status.textContent = '⚠️ Chave da API é obrigatória.';
+      if (status) status.innerHTML = `${IconWarning()} Chave da API é obrigatória.`;
       return;
     }
 
     await saveConfig({ baseUrl, apiKey, defaultModel });
     // Update the component so it reloads models with new credentials
     modelSelectorComponent?.updateConfig({ baseUrl, apiKey, defaultModel });
-    if (status) status.textContent = '✅ Configuração salva!';
+    if (status) status.innerHTML = `${IconCheck()} Configuração salva!`;
     setTimeout(() => { if (status) status.innerHTML = '&nbsp;'; }, 3000);
     loadModels();
   });
@@ -1416,17 +1319,17 @@ function initConfig() {
     const baseUrl = ($<HTMLInputElement>('configBaseUrl')?.value ?? '').replace(/\/+$/, '');
     const apiKey = $<HTMLInputElement>('configApiKey')?.value ?? '';
     if (!baseUrl || !apiKey) {
-      if (status) status.textContent = '⚠️ Preencha URL e chave primeiro.';
+      if (status) status.innerHTML = `${IconWarning()} Preencha URL e chave primeiro.`;
       return;
     }
     if (status) {
-      status.textContent = '🔄 Testando…';
+      status.innerHTML = `${IconRefresh()} Testando…`;
       (btnTest as HTMLButtonElement).disabled = true;
     }
     const r = await testConnection(baseUrl, apiKey);
     const lines: string[] = [];
-    lines.push(`📡 Models: ${r.models.ok ? '✅' : '❌'} ${r.models.status}${r.models.count ? ` (${r.models.count} modelos)` : ''}`);
-    lines.push(`💬 Chat: ${r.chat.ok ? '✅' : '❌'} ${r.chat.status}`);
+    lines.push(`${IconBarChart('icon-inline')} Models: ${r.models.ok ? IconCheck('icon-inline') : IconError('icon-inline')} ${r.models.status}${r.models.count ? ` (${r.models.count} modelos)` : ''}`);
+    lines.push(`${IconInfo('icon-inline')} Chat: ${r.chat.ok ? IconCheck('icon-inline') : IconError('icon-inline')} ${r.chat.status}`);
     if (status) {
       status.innerHTML = lines.join('<br>');
       setTimeout(() => { status.innerHTML = '&nbsp;'; }, 6000);
@@ -1440,7 +1343,7 @@ function initConfig() {
     const apiKey = $<HTMLInputElement>('configApiKey')?.value ?? '';
 
     if (!baseUrl || !apiKey) {
-      if (status) status.textContent = '⚠️ Preencha URL e chave primeiro.';
+      if (status) status.innerHTML = `${IconWarning()} Preencha URL e chave primeiro.`;
       return;
     }
 
@@ -1449,7 +1352,7 @@ function initConfig() {
     const savedKey = aiConfig.apiKey;
     aiConfig.baseUrl = baseUrl;
     aiConfig.apiKey = apiKey;
-    if (status) status.textContent = '🔄 Carregando modelos…';
+    if (status) status.innerHTML = `${IconRefresh()} Carregando modelos…`;
     await loadModels().catch(() => {});
     // restaura — só salva se clicar em Salvar
     aiConfig.baseUrl = savedUrl;
@@ -1496,7 +1399,7 @@ async function main() {
   $<HTMLElement>('btnStop')?.addEventListener('click', () => {
     if (activeAbortController) {
       activeAbortController.abort('Parado pelo usuário');
-      addLog('⏹ Streaming interrompido pelo usuário');
+      addLog('Streaming interrompido pelo usuário', false, false, IconStop);
     }
   });
 
@@ -1521,7 +1424,7 @@ async function main() {
 
   // Clear data action
   $<HTMLElement>('btnClearData')?.addEventListener('click', async () => {
-    if (confirm('Limpar todos os dados locais (contextos, histórico, configurações)?')) {
+    if (await showConfirm('Limpar todos os dados locais (contextos, histórico, configurações)?')) {
       await clearStorage();
       contexts.clear();
       activeContextKey = null;
@@ -1530,7 +1433,7 @@ async function main() {
       searchData = [];
       renderContextSelector();
       updateChatDisplay();
-      addLog('🗑️ Todos os dados foram limpos.');
+      addLog('Todos os dados foram limpos.', false, false, IconTrash);
     }
   });
 
@@ -1541,7 +1444,7 @@ async function main() {
     let transcribed = 0;
     for (let i = 0; i < audioMsgs.length; i++) {
       const msg = audioMsgs[i]!;
-      addLog(`🔄 Transcrevendo áudio ${i + 1}/${audioMsgs.length}…`);
+      addLog(`Transcrevendo áudio ${i + 1}/${audioMsgs.length}…`, false, false, IconRefresh);
       try {
         // Send audio to API for transcription
         const resp = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
@@ -1572,9 +1475,9 @@ async function main() {
         DEBUG.error('TRANSCRIBE', e);
       }
     }
-    addLog(`✅ ${transcribed}/${audioMsgs.length} áudios transcritos.`);
+    addLog(`${transcribed}/${audioMsgs.length} áudios transcritos.`, false, false, IconCheck);
     if (transcribed < audioMsgs.length) {
-      addLog(`⚠️ ${audioMsgs.length - transcribed} falhas na transcrição.`, true);
+      addLog(`${audioMsgs.length - transcribed} falhas na transcrição.`, true, false, IconWarning);
     }
     renderTranscribeButton();
   });
@@ -1679,6 +1582,9 @@ function initSidebar() {
   setupMessageListener();
 
   btnExtract.addEventListener('click', () => startExtraction());
-  DEBUG.log('✅ Sidebar pronta');
-}
 
+  // Cleanup model selector listeners when panel closes
+  window.addEventListener('pagehide', () => modelSelectorComponent?.destroy(), { once: true });
+
+  DEBUG.log('Sidebar pronta');
+}

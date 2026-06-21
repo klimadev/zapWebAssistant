@@ -63,10 +63,9 @@
         --accent-hov: oklch(0.7 0.17 255);
         --accent-soft: oklch(0.65 0.18 255 / 0.12);
         --accent-ghost: oklch(0.65 0.18 255 / 0.08);
-        --shad-sm: 0 1px 2px oklch(0 0 0 / 0.2);
+        --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.2);
         --shadow-md: 0 4px 12px oklch(0 0 0 / 0.3);
         --shadow-lg: 0 8px 24px oklch(0 0 0 / 0.4);
-        --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.25);
       }
     }
 
@@ -101,6 +100,8 @@
       vertical-align: middle;
       margin: -2px 2px 0 0;
     }
+    .icon-sm { width: 12px; height: 12px; }
+    .icon-md { width: 14px; height: 14px; }
 
     /* ── Panel ──────────────────────────────────────── */
     .panel {
@@ -195,6 +196,8 @@
       text-transform: uppercase; letter-spacing: 0.06em;
       color: var(--text-ter);
     }
+    .section-title--tight { margin-top: 1px; }
+    .config-status { min-height: 1.2em; display: flex; align-items: center; gap: 4px; }
     .helper-text {
       font-size: 11px; color: var(--text-ter); line-height: 1.45;
     }
@@ -295,6 +298,7 @@
       display: inline-flex; align-items: center; gap: 4px;
     }
     .btn-danger:hover { background: var(--danger-soft); }
+    .btn-danger:focus-visible { outline: 2px solid var(--danger); outline-offset: 1px; }
 
     .btn-ghost {
       border: none; background: transparent;
@@ -305,6 +309,7 @@
       font-family: inherit;
     }
     .btn-ghost:hover { background: var(--accent-ghost); color: var(--accent); }
+    .btn-ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
     /* ── Log Area ────────────────────────────────────── */
     .log-area {
@@ -345,6 +350,7 @@
       transition: border-color var(--t), background var(--t);
     }
     .context-chip:hover { border-color: var(--accent); }
+    .context-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     .context-chip.selected { border-color: var(--accent); background: var(--accent-soft); }
     .context-chip-name { font-size: 10.5px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .context-chip-meta { font-size: 9px; color: var(--text-ter); white-space: nowrap; }
@@ -516,6 +522,7 @@
       cursor: pointer;
       transition: background var(--t), color var(--t);
       display: flex; align-items: center; gap: 6px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .model-item:hover { background: var(--accent-ghost); }
     .model-item.selected { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
@@ -535,6 +542,7 @@
     .chat-actions-bar:hover { opacity: 1; }
     .chat-action-btn { border: none; background: transparent; cursor: pointer; padding: 2px 3px; border-radius: 3px; transition: background var(--t); display: flex; align-items: center; justify-content: center; }
     .chat-action-btn:hover { background: var(--accent-ghost); }
+    .chat-action-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     .chat-action-btn .icon { width: 14px; height: 14px; }
 
     /* ── Stop Button ──────────────────────────────────── */
@@ -563,6 +571,7 @@
     .search-senders { display: flex; gap: 3px; flex-wrap: wrap; margin: 2px 0; }
     .sender-chip { font-size: 9px; padding: 1px 5px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-sec); cursor: pointer; font-family: inherit; transition: border-color var(--t), background var(--t); }
     .sender-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .sender-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     .sender-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
     .search-results { display: none; max-height: 160px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r-md); padding: 3px; background: var(--surface); }
@@ -705,31 +714,31 @@
             <div class="checkbox-group">
               <label class="checkbox-pill">
                 <input type="checkbox" id="includeAudio" checked>
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><rect x="6" y="1" width="4" height="8" rx="2"/><path d="M3 7v1a5 5 0 0010 0V7M8 13v2"/></svg>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><rect x="6" y="1" width="4" height="8" rx="2"/><path d="M3 7v1a5 5 0 0010 0V7M8 13v2"/></svg>
                 Áudio
               </label>
               <label class="checkbox-pill">
                 <input type="checkbox" id="includeImage" checked>
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><rect x="2" y="2" width="12" height="12" rx="1.5"/><circle cx="5.5" cy="5.5" r="1.5"/><path d="M2 11l3-3 2 2 4-4 3 3"/></svg>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><rect x="2" y="2" width="12" height="12" rx="1.5"/><circle cx="5.5" cy="5.5" r="1.5"/><path d="M2 11l3-3 2 2 4-4 3 3"/></svg>
                 Imagem
               </label>
               <label class="checkbox-pill">
                 <input type="checkbox" id="autoTranscribe">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M3 9v1a2 2 0 01-2 2H.5V8H1a2 2 0 012 2zM13 9v1a2 2 0 002 2h.5V8H15a2 2 0 00-2 2z"/><path d="M3 9V6a5 5 0 0110 0v3"/></svg>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M3 9v1a2 2 0 01-2 2H.5V8H1a2 2 0 012 2zM13 9v1a2 2 0 002 2h.5V8H15a2 2 0 00-2 2z"/><path d="M3 9V6a5 5 0 0110 0v3"/></svg>
                 Transcrever
               </label>
             </div>
           </div>
 
           <button id="btnExtract" class="btn-primary">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M8 1v9M4 6l4 4 4-4M2 12v1.5A1.5 1.5 0 003.5 15h9a1.5 1.5 0 001.5-1.5V12"/></svg>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-md"><path d="M8 1v9M4 6l4 4 4-4M2 12v1.5A1.5 1.5 0 003.5 15h9a1.5 1.5 0 001.5-1.5V12"/></svg>
             Extrair mensagens
           </button>
         </div>
 
-        <div class="section-title" style="margin-top:1px">Status</div>
+        <div class="section-title section-title--tight">Status</div>
         <div class="log-area" id="status">
-          <div class="log-entry">Pronto para extrair...</div>
+          <div class="log-entry">Configure os filtros e clique em Extrair</div>
         </div>
       </div>
     </div>
@@ -741,26 +750,26 @@
         <div class="context-bar">
           <div class="section-title">Contextos</div>
           <div class="context-chips" id="contextSelector">
-            <div class="helper-text" style="padding:3px 0">Nenhum contexto extraído</div>
+            <div class="helper-text" style="padding:3px 0">Nenhum contexto disponível. Extraia uma conversa primeiro.</div>
           </div>
         </div>
 
         <!-- Toolbar -->
         <div class="ia-toolbar">
           <button class="btn-secondary btn-small" id="btnQuickSummary">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M3 2.5v11A1.5 1.5 0 004.5 15h7a1.5 1.5 0 001.5-1.5v-9L9 1H4.5A1.5 1.5 0 003 2.5z"/><path d="M9 1v4h4"/><path d="M5.5 8h5M5.5 11h5"/></svg>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M3 2.5v11A1.5 1.5 0 004.5 15h7a1.5 1.5 0 001.5-1.5v-9L9 1H4.5A1.5 1.5 0 003 2.5z"/><path d="M9 1v4h4"/><path d="M5.5 8h5M5.5 11h5"/></svg>
             Resumo
           </button>
           <button class="btn-secondary btn-small" id="btnKeyPoints">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M4 4h9M4 8h9M4 12h9"/><circle cx="2" cy="4" r=".75" fill="currentColor"/><circle cx="2" cy="8" r=".75" fill="currentColor"/><circle cx="2" cy="12" r=".75" fill="currentColor"/></svg>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M4 4h9M4 8h9M4 12h9"/><circle cx="2" cy="4" r=".75" fill="currentColor"/><circle cx="2" cy="8" r=".75" fill="currentColor"/><circle cx="2" cy="12" r=".75" fill="currentColor"/></svg>
             Pontos
           </button>
           <button class="btn-secondary btn-small" id="btnStats">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M4 13V8M8 13V5M12 13v-3"/><path d="M2 13h12"/></svg>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M4 13V8M8 13V5M12 13v-3"/><path d="M2 13h12"/></svg>
             Stats
           </button>
           <button class="btn-secondary btn-small" id="btnTranscribe" style="display:none">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M3 9v1a2 2 0 01-2 2H.5V8H1a2 2 0 012 2zM13 9v1a2 2 0 002 2h.5V8H15a2 2 0 00-2 2z"/><path d="M3 9V6a5 5 0 0110 0v3"/></svg>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M3 9v1a2 2 0 01-2 2H.5V8H1a2 2 0 012 2zM13 9v1a2 2 0 002 2h.5V8H15a2 2 0 00-2 2z"/><path d="M3 9V6a5 5 0 0110 0v3"/></svg>
             Transc.
           </button>
         </div>
@@ -808,7 +817,7 @@
                 </button>
                 <button id="btnSend" class="btn-send">
                   Enviar
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M2 8l11-5-5 11-2-4-4-2z"/><path d="M8 10l2-2"/></svg>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M2 8l11-5-5 11-2-4-4-2z"/><path d="M8 10l2-2"/></svg>
                 </button>
               </div>
             </div>
@@ -838,36 +847,47 @@
           </div>
           <div class="field-row">
             <button id="btnLoadModels" class="btn-secondary" style="flex:1">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M13.5 4.5A6 6 0 003 8M2.5 11.5A6 6 0 0013 8"/><path d="M13.5 1v3.5H10M2.5 15v-3.5H6"/></svg>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M13.5 4.5A6 6 0 003 8M2.5 11.5A6 6 0 0013 8"/><path d="M13.5 1v3.5H10M2.5 15v-3.5H6"/></svg>
               Carregar
             </button>
             <button id="btnTestConn" class="btn-secondary" style="flex:1">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><circle cx="8" cy="8" r="7"/><path d="M8 7.5V11M8 5.5v.5"/></svg>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><circle cx="8" cy="8" r="7"/><path d="M8 7.5V11M8 5.5v.5"/></svg>
               Testar
             </button>
             <button id="btnSaveConfig" class="btn-primary" style="flex:1">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M2 8l4 4 8-8"/></svg>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M2 8l4 4 8-8"/></svg>
               Salvar
             </button>
           </div>
-          <div id="configStatus" class="helper-text" style="min-height:1.2em">&nbsp;</div>
+          <div id="configStatus" class="helper-text config-status">&nbsp;</div>
         </div>
 
-        <div class="section-title" style="margin-top:4px">Debug</div>
+        <div class="section-title section-title--tight">Debug</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <label class="checkbox-pill">
             <input type="checkbox" id="configShowDebug">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M12.5 10.5A6 6 0 015.5 3.5 6 6 0 1012.5 10.5z"/></svg>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M12.5 10.5A6 6 0 015.5 3.5 6 6 0 1012.5 10.5z"/></svg>
             Debug no chat
           </label>
           <button id="btnClearData" class="btn-danger btn-small">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M2 4h12M5 4V2.5A1.5 1.5 0 016.5 1h3A1.5 1.5 0 0111 2.5V4"/><path d="M12.5 4l-.5 9.5a1.5 1.5 0 01-1.5 1.4H5.5A1.5 1.5 0 014 13.5L3.5 4"/></svg>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M2 4h12M5 4V2.5A1.5 1.5 0 016.5 1h3A1.5 1.5 0 0111 2.5V4"/><path d="M12.5 4l-.5 9.5a1.5 1.5 0 01-1.5 1.4H5.5A1.5 1.5 0 014 13.5L3.5 4"/></svg>
             Limpar dados
           </button>
         </div>
       </div>
     </div>
 
+  </div>
+
+  <!-- Confirm dialog (custom, replaces native confirm()) -->
+  <div id="confirmOverlay" style="display:none;position:fixed;inset:0;background:oklch(0 0 0 / 0.4);z-index:9999;align-items:center;justify-content:center">
+    <div id="confirmDialog" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 20px;max-width:280px;width:90%;box-shadow:var(--shadow-lg)">
+      <p id="confirmMessage" style="font-size:13px;margin-bottom:12px;color:var(--text)"></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="confirmNo" class="btn-ghost btn-small">Cancelar</button>
+        <button id="confirmYes" class="btn-danger btn-small">Confirmar</button>
+      </div>
+    </div>
   </div>
 
   <script src="sidebar.js"></script>

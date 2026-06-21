@@ -2,7 +2,7 @@
 // Style: minimal, monochrome, Lucide-inspired
 // All icons accept an optional class name for CSS sizing
 
-type IconFn = (cls?: string) => string;
+export type IconFn = (cls?: string) => string;
 
 function s(cls: string | undefined, def = 'icon'): string {
   return cls ? `icon ${cls}` : def;
@@ -104,46 +104,4 @@ export function createIcon(fn: IconFn, cls?: string): SVGSVGElement {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = fn(cls);
   return wrapper.firstElementChild as SVGSVGElement;
-}
-
-// Replace all emoji inside a container with SVG icons.
-// Mapping: text content → icon function.
-// Call after DOM is ready, or on newly inserted content.
-const EMOJI_MAP: Record<string, IconFn> = {
-  '🎤': IconMic,
-  '📝': IconDoc,
-  '📋': IconList,
-  '📊': IconBarChart,
-  '🎧': IconHeadphones,
-  '🗑️': IconTrash,
-  '🗑': IconTrash,
-  '⏹': IconStop,
-  '📋': IconCopy,
-  '🔄': IconRefresh,
-  '📥': IconDownload,
-  '🔍': IconSearch,
-  '✅': IconCheck,
-  '❌': IconError,
-  '⚠️': IconWarning,
-  '⚠': IconWarning,
-  '🌙': IconMoon,
-  '☀️': IconSun,
-  '✕': IconClose,
-  '×': IconClose,
-};
-
-export function replaceEmojiWithIcons(container: HTMLElement): void {
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-  const nodesToReplace: { node: Text; fn: IconFn }[] = [];
-  while (walker.nextNode()) {
-    const node = walker.currentNode as Text;
-    const text = node.textContent?.trim();
-    if (text && EMOJI_MAP[text]) {
-      nodesToReplace.push({ node, fn: EMOJI_MAP[text] });
-    }
-  }
-  for (const { node, fn } of nodesToReplace) {
-    const svg = createIcon(fn, 'icon-inline');
-    node.parentNode?.replaceChild(svg, node);
-  }
 }

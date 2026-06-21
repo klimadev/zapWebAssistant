@@ -120,20 +120,26 @@
   "hotPaths": [
     {
       "path": "src/sidebar.ts",
-      "accessCount": 81,
-      "lastAccessed": 1782032113262,
+      "accessCount": 177,
+      "lastAccessed": 1782037810794,
       "type": "file"
     },
     {
       "path": "src/sidebar.html",
-      "accessCount": 26,
-      "lastAccessed": 1782031670459,
+      "accessCount": 57,
+      "lastAccessed": 1782037845258,
       "type": "file"
     },
     {
       "path": "openspec/changes/whatsapp-chatbot-v2/tasks.md",
       "accessCount": 17,
       "lastAccessed": 1782028242363,
+      "type": "file"
+    },
+    {
+      "path": "src/components/model-selector.ts",
+      "accessCount": 6,
+      "lastAccessed": 1782036758964,
       "type": "file"
     },
     {
@@ -149,21 +155,33 @@
       "type": "file"
     },
     {
-      "path": "openspec/changes/whatsapp-chatbot-v2/specs/api-config/spec.md",
-      "accessCount": 2,
-      "lastAccessed": 1781951860523,
-      "type": "file"
-    },
-    {
       "path": "manifest.json",
-      "accessCount": 2,
-      "lastAccessed": 1782014108163,
+      "accessCount": 4,
+      "lastAccessed": 1782032888147,
       "type": "file"
     },
     {
       "path": "src/utils.ts",
+      "accessCount": 4,
+      "lastAccessed": 1782032943010,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/icons.ts",
+      "accessCount": 4,
+      "lastAccessed": 1782036476910,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/storage.ts",
+      "accessCount": 3,
+      "lastAccessed": 1782032943276,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/api-config/spec.md",
       "accessCount": 2,
-      "lastAccessed": 1782014506192,
+      "lastAccessed": 1781951860523,
       "type": "file"
     },
     {
@@ -182,6 +200,18 @@
       "path": "sidebar.js",
       "accessCount": 2,
       "lastAccessed": 1782030211197,
+      "type": "file"
+    },
+    {
+      "path": "src/background.ts",
+      "accessCount": 2,
+      "lastAccessed": 1782032866526,
+      "type": "file"
+    },
+    {
+      "path": "vite.config.ts",
+      "accessCount": 2,
+      "lastAccessed": 1782032888396,
       "type": "file"
     },
     {
@@ -281,27 +311,9 @@
       "type": "file"
     },
     {
-      "path": "vite.config.ts",
-      "accessCount": 1,
-      "lastAccessed": 1782013675823,
-      "type": "file"
-    },
-    {
-      "path": "src/background.ts",
-      "accessCount": 1,
-      "lastAccessed": 1782013788432,
-      "type": "file"
-    },
-    {
       "path": "src/utils.test.ts",
       "accessCount": 1,
       "lastAccessed": 1782013788796,
-      "type": "file"
-    },
-    {
-      "path": "src/utils/storage.ts",
-      "accessCount": 1,
-      "lastAccessed": 1782013954003,
       "type": "file"
     },
     {
@@ -311,15 +323,9 @@
       "type": "file"
     },
     {
-      "path": "src/utils/icons.ts",
+      "path": "src/content.ts",
       "accessCount": 1,
-      "lastAccessed": 1782031476082,
-      "type": "file"
-    },
-    {
-      "path": "src/components/model-selector.ts",
-      "accessCount": 1,
-      "lastAccessed": 1782031513176,
+      "lastAccessed": 1782032879339,
       "type": "file"
     }
   ],
