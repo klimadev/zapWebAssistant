@@ -37,7 +37,7 @@
     "runtime": "Node.js 20"
   },
   "build": {
-    "buildCommand": "pnpm lint 2>&1 && pnpm build 2>&1",
+    "buildCommand": "pnpm build 2>&1",
     "testCommand": "npx vitest run 2>&1",
     "lintCommand": "pnpm lint",
     "devCommand": "pnpm dev",
@@ -120,8 +120,8 @@
   "hotPaths": [
     {
       "path": "src/sidebar.ts",
-      "accessCount": 59,
-      "lastAccessed": 1782028195159,
+      "accessCount": 60,
+      "lastAccessed": 1782030350591,
       "type": "file"
     },
     {
@@ -132,8 +132,8 @@
     },
     {
       "path": "src/sidebar.html",
-      "accessCount": 15,
-      "lastAccessed": 1782028087129,
+      "accessCount": 17,
+      "lastAccessed": 1782030732171,
       "type": "file"
     },
     {
@@ -164,6 +164,24 @@
       "path": "src/utils.ts",
       "accessCount": 2,
       "lastAccessed": 1782014506192,
+      "type": "file"
+    },
+    {
+      "path": "sidebar.html",
+      "accessCount": 2,
+      "lastAccessed": 1782030210354,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 2,
+      "lastAccessed": 1782030211013,
+      "type": "file"
+    },
+    {
+      "path": "sidebar.js",
+      "accessCount": 2,
+      "lastAccessed": 1782030211197,
       "type": "file"
     },
     {
@@ -251,24 +269,6 @@
       "type": "file"
     },
     {
-      "path": "package.json",
-      "accessCount": 1,
-      "lastAccessed": 1782013663863,
-      "type": "file"
-    },
-    {
-      "path": "sidebar.html",
-      "accessCount": 1,
-      "lastAccessed": 1782013664526,
-      "type": "file"
-    },
-    {
-      "path": "sidebar.js",
-      "accessCount": 1,
-      "lastAccessed": 1782013664983,
-      "type": "file"
-    },
-    {
       "path": "background.js",
       "accessCount": 1,
       "lastAccessed": 1782013665078,
@@ -302,6 +302,12 @@
       "path": "src/utils/storage.ts",
       "accessCount": 1,
       "lastAccessed": 1782013954003,
+      "type": "file"
+    },
+    {
+      "path": "PRODUCT.md",
+      "accessCount": 1,
+      "lastAccessed": 1782030559251,
       "type": "file"
     }
   ],

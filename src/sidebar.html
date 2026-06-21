@@ -6,344 +6,429 @@
   <meta name="color-scheme" content="light dark">
   <title>Extrator WhatsApp</title>
   <style>
-    /* ═══════════════════════════════════════════════
-       Extrator WhatsApp - redesigned
-       Light + Dark mode via prefers-color-scheme
-       Single accent: blue, zero purple
-       Consistent radii: 12 / 8 / 6
-       ═══════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════
+       Extrator WhatsApp — Redesign
+       Register: product (Linear/Raycast)
+       Brand: Clean, Minimal, Precise
+       ═══════════════════════════════════════ */
 
     :root {
-      --bg:          #f1f3f5;
-      --bg-soft:     #f8f9fa;
-      --surface:     rgba(255, 255, 255, 0.85);
-      --surface-st:  #ffffff;
-      --line:        #dee2e6;
-      --line-st:     #ced4da;
-      --text:        #212529;
-      --text-sec:    #495057;
-      --text-ter:    #868e96;
-      --accent:      #2563eb;
-      --accent-hov:  #1d4ed8;
-      --accent-soft: rgba(37, 99, 235, 0.10);
-      --success:     #16a34a;
-      --warning:     #d97706;
-      --danger:      #dc2626;
-      --shadow:      0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md:   0 4px 12px rgba(0,0,0,0.06);
-      --r-lg: 12px;
-      --r-md: 8px;
+      --bg: #f5f5f4;
+      --surface: #ffffff;
+      --surface-hover: #fafaf9;
+      --border: #e5e5e0;
+      --border-strong: #d4d4d0;
+      --text: #1c1917;
+      --text-sec: #57534e;
+      --text-ter: #a8a29e;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --accent-ghost: rgba(37,99,235,0.08);
+      --success: #16a34a;
+      --success-soft: rgba(22,163,74,0.1);
+      --danger: #dc2626;
+      --danger-soft: rgba(220,38,38,0.1);
+      --warning: #d97706;
+      --warning-soft: rgba(217,119,6,0.1);
       --r-sm: 6px;
-      /* transition token */
-      --t: 0.18s ease;
+      --r-md: 8px;
+      --r-lg: 10px;
+      --t: 0.15s ease;
+      --font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg:          #0a0a0f;
-        --bg-soft:     #121216;
-        --surface:     rgba(255, 255, 255, 0.06);
-        --surface-st:  #18181b;
-        --line:        rgba(255, 255, 255, 0.10);
-        --line-st:     rgba(255, 255, 255, 0.18);
-        --text:        #fafafa;
-        --text-sec:    #a1a1aa;
-        --text-ter:    #71717a;
-        --accent:      #3b82f6;
-        --accent-hov:  #60a5fa;
-        --accent-soft: rgba(59, 130, 246, 0.15);
-        --shadow:      0 1px 3px rgba(0,0,0,0.3);
-        --shadow-md:   0 4px 12px rgba(0,0,0,0.35);
+        --bg: #0c0c0d;
+        --surface: #18181b;
+        --surface-hover: #1f1f23;
+        --border: #27272a;
+        --border-strong: #3f3f46;
+        --text: #fafafa;
+        --text-sec: #a1a1aa;
+        --text-ter: #71717a;
+        --accent: #3b82f6;
+        --accent-hover: #60a5fa;
+        --accent-soft: rgba(59,130,246,0.12);
+        --accent-ghost: rgba(59,130,246,0.08);
+        --success: #22c55e;
+        --success-soft: rgba(34,197,94,0.12);
+        --danger: #ef4444;
+        --danger-soft: rgba(239,68,68,0.12);
+        --warning: #f59e0b;
+        --warning-soft: rgba(245,158,11,0.12);
       }
     }
 
-    /* ── Reset ─────────────────────────────────── */
-    *, *::before, *::after {
-      margin: 0; padding: 0; box-sizing: border-box;
-    }
-    html, body {
-      width: 100%; height: 100%; overflow: hidden;
-    }
-    body {
-      min-width: 320px;
-      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex; flex-direction: column;
-      padding: 8px; gap: 8px;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── Utility: reduced-motion ───────────────── */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
       }
     }
 
-    /* ── Panel ─────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      min-width: 280px;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Panel ───────────────────────────── */
     .panel {
-      display: flex; flex-direction: column; flex: 1;
-      min-height: 0; gap: 8px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 0;
     }
 
-    /* ── Header ────────────────────────────────── */
-    .header {
+    /* ── Top Bar (header + tabs integrated) ─ */
+    .topbar {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 8px 10px 4px;
+      border-bottom: 1px solid var(--border);
       background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--r-lg);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px) saturate(1.4);
-      -webkit-backdrop-filter: blur(12px) saturate(1.4);
-      padding: 10px 12px;
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    }
-    @media (prefers-reduced-transparency: reduce) {
-      .header { background: var(--surface-st); backdrop-filter: none; }
-    }
-    .title-wrap { min-width: 0; }
-    .title {
-      font-size: 13px; font-weight: 700; line-height: 1.25;
-      letter-spacing: -0.01em;
-    }
-    .subtitle {
-      margin-top: 2px;
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 10.5px; color: var(--text-ter);
-      white-space: nowrap; max-width: 180px;
-      overflow: hidden; text-overflow: ellipsis;
-    }
-    .status-dot {
-      width: 6px; height: 6px;
-      border-radius: 999px; background: var(--success);
-      flex: 0 0 auto;
+      flex-shrink: 0;
     }
 
-    .header-btn {
-      width: 28px; height: 28px;
-      border-radius: var(--r-md);
-      border: 1px solid var(--line);
+    .topbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 28px;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .topbar-icon {
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-sub {
+      font-size: 10px;
+      color: var(--text-ter);
+      margin-left: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .topbar-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: var(--r-sm);
       background: transparent;
       color: var(--text-ter);
-      font-size: 16px; line-height: 1;
+      font-size: 14px;
       cursor: pointer;
-      transition: background var(--t), color var(--t), border-color var(--t);
-      flex: 0 0 auto;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--t), color var(--t);
     }
-    .header-btn:hover {
-      background: var(--accent-soft);
-      border-color: var(--accent);
+    .topbar-btn:hover {
+      background: var(--accent-ghost);
       color: var(--accent);
     }
 
-    /* ── Tabs ──────────────────────────────────── */
-    .tabs {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--r-lg);
-      padding: 3px;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 3px;
+    /* ── Pill Tabs ────────────────────────── */
+    .tabbar {
+      display: flex;
+      gap: 2px;
+      padding: 4px 0 0;
     }
+
     .tab {
-      border: none; border-radius: var(--r-md);
-      padding: 7px 6px;
-      font-size: 11.5px; font-weight: 600;
+      border: none;
+      border-radius: var(--r-sm);
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
       color: var(--text-ter);
       background: transparent;
       cursor: pointer;
-      transition: background var(--t), color var(--t), box-shadow var(--t);
+      transition: background var(--t), color var(--t);
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .tab:hover {
+      color: var(--text-sec);
+      background: var(--accent-ghost);
     }
     .tab.active {
       color: var(--accent);
       background: var(--accent-soft);
     }
-    .tab:hover:not(.active) {
-      background: rgba(128,128,128,0.06);
-      color: var(--text-sec);
-    }
 
+    /* ── Tab Content ──────────────────────── */
     .tab-content {
-      display: none; flex: 1; min-height: 0; overflow: hidden;
+      display: none;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
     .tab-content.active { display: flex; }
 
-    /* ── Scrollable bodies ─────────────────────── */
-    .body-extract,
-    .body-ia {
-      width: 100%; flex: 1; min-height: 0;
+    .tab-body {
+      flex: 1;
+      min-height: 0;
       overflow-y: auto;
-      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    /* ── Card ──────────────────────────────────── */
-    .card {
-      background: var(--surface-st);
-      border: 1px solid var(--line);
-      border-radius: var(--r-lg);
-      box-shadow: var(--shadow);
-      padding: 10px 12px;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .card-title {
-      font-size: 10.5px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.05em;
+    /* ── Shared Components ────────────────── */
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
       color: var(--text-ter);
+      margin-bottom: 2px;
     }
+
     .helper-text {
-      font-size: 10.5px; color: var(--text-ter); line-height: 1.45;
+      font-size: 11px;
+      color: var(--text-ter);
+      line-height: 1.45;
     }
 
-    /* ── Form ──────────────────────────────────── */
-    .form-group {
-      display: flex; flex-direction: column; gap: 4px;
-    }
-    .label {
-      font-size: 10.5px; font-weight: 600; color: var(--text-sec);
+    /* ── Extract Tab ──────────────────────── */
+    .extract-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .custom-select,
-    .input-field,
-    .chat-input {
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-sec);
+    }
+
+    .field-row {
+      display: flex;
+      gap: 6px;
+    }
+    .field-row .field-group { flex: 1; }
+
+    /* ── Inputs ───────────────────────────── */
+    .input,
+    .select,
+    .textarea {
       width: 100%;
-      border: 1px solid var(--line);
+      padding: 7px 10px;
+      border: 1px solid var(--border);
       border-radius: var(--r-md);
       font-size: 12px;
       color: var(--text);
-      background: var(--surface-st);
+      background: var(--surface);
+      font-family: inherit;
       transition: border-color var(--t), box-shadow var(--t);
     }
-    .custom-select {
-      appearance: none;
-      padding: 8px 32px 8px 10px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2371717a' d='M5 6.5 1.5 3h7z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      cursor: pointer;
-    }
-    @media (prefers-color-scheme: dark) {
-      .custom-select {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2371717a' d='M5 6.5 1.5 3h7z'/%3E%3C/svg%3E");
-      }
-    }
-    .input-field,
-    .chat-input {
-      padding: 8px 10px;
-    }
-    .custom-select:focus,
-    .input-field:focus,
-    .chat-input:focus {
+    .input:focus,
+    .select:focus,
+    .textarea:focus {
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 2px var(--accent-soft);
     }
-
-    .row {
-      display: flex; gap: 8px;
+    .input::placeholder,
+    .textarea::placeholder {
+      color: var(--text-ter);
     }
-    .row .form-group { flex: 1; }
 
-    /* ── Checkbox pills ────────────────────────── */
+    .select {
+      appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2371717a' d='M5 6.5 1.5 3h7z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      cursor: pointer;
+    }
+
+    .textarea {
+      resize: none;
+      line-height: 1.4;
+    }
+
+    /* ── Checkbox pills ───────────────────── */
     .checkbox-group {
-      display: flex; gap: 6px; flex-wrap: wrap;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
     }
-    .checkbox-label,
-    .checkbox-context {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 10.5px; color: var(--text-sec);
-      background: var(--bg-soft);
-      border: 1px solid var(--line);
+    .checkbox-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-sec);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 999px;
-      padding: 5px 9px;
+      padding: 4px 9px;
       cursor: pointer;
       transition: border-color var(--t), background var(--t);
     }
-    .checkbox-label:hover,
-    .checkbox-context:hover {
+    .checkbox-pill:hover {
       border-color: var(--accent);
       background: var(--accent-soft);
     }
-    .checkbox-label input,
-    .checkbox-context input {
-      accent-color: var(--accent); cursor: pointer;
-    }
-
-    .conditional-field {
-      display: none; flex-direction: column; gap: 8px;
-    }
-    .conditional-field.visible { display: flex; }
-
-    /* ── Buttons ───────────────────────────────── */
-    .btn-extract,
-    .btn-send {
-      border: none; border-radius: var(--r-md);
-      color: #ffffff;
-      font-size: 12px; font-weight: 700;
+    .checkbox-pill input {
+      accent-color: var(--accent);
       cursor: pointer;
-      background: var(--accent);
-      transition: background var(--t), transform 0.12s ease, box-shadow var(--t);
-    }
-    .btn-extract {
-      width: 100%; padding: 9px 12px;
-    }
-    .btn-send {
-      padding: 7px 14px; min-width: 80px;
-    }
-    .btn-extract:hover:not(:disabled),
-    .btn-send:hover:not(:disabled) {
-      background: var(--accent-hov);
-    }
-    .btn-extract:active:not(:disabled),
-    .btn-send:active:not(:disabled) {
-      transform: scale(0.97);
-    }
-    .btn-extract:disabled,
-    .btn-send:disabled {
-      opacity: 0.45; cursor: not-allowed; transform: none;
     }
 
-    /* ── Config tab buttons ────────────────────── */
-    #btnLoadModels,
-    #btnTestConn,
-    #btnSaveConfig {
-      border: none; border-radius: var(--r-md);
-      color: #fff; font-size: 11px; font-weight: 700;
-      padding: 8px 10px; cursor: pointer;
-      transition: opacity var(--t), transform 0.12s ease;
+    /* ── Conditional fields ───────────────── */
+    .conditional {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
     }
-    #btnLoadModels { background: var(--accent); }
-    #btnTestConn  { background: var(--warning); }
-    #btnSaveConfig { background: var(--success); }
-    #btnLoadModels:hover,
-    #btnTestConn:hover,
-    #btnSaveConfig:hover { opacity: 0.85; }
-    #btnLoadModels:active,
-    #btnTestConn:active,
-    #btnSaveConfig:active { transform: scale(0.97); }
+    .conditional.visible { display: flex; }
 
-    /* ── Status / Log area (visual debug) ──────── */
-    .status-area {
-      max-height: 140px;
-      overflow-y: auto;
+    /* ── Buttons ──────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
       border-radius: var(--r-md);
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background var(--t), transform 0.1s ease;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-secondary {
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--surface);
+      color: var(--text-sec);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color var(--t), background var(--t);
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .btn-small {
+      padding: 3px 8px;
+      font-size: 10px;
+      border-radius: var(--r-sm);
+    }
+
+    .btn-danger {
+      border: 1px solid transparent;
+      border-radius: var(--r-md);
+      background: transparent;
+      color: var(--danger);
+      font-size: 11px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background var(--t);
+    }
+    .btn-danger:hover {
+      background: var(--danger-soft);
+    }
+
+    .btn-ghost {
+      border: none;
+      background: transparent;
+      color: var(--text-ter);
+      cursor: pointer;
+      padding: 3px 6px;
+      border-radius: var(--r-sm);
+      font-size: 11px;
+      transition: background var(--t), color var(--t);
+      font-family: inherit;
+    }
+    .btn-ghost:hover {
+      background: var(--accent-ghost);
+      color: var(--accent);
+    }
+
+    /* ── Log / Status Area ────────────────── */
+    .log-area {
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--surface);
       padding: 6px 8px;
-      background: var(--bg-soft);
-      border: 1px solid var(--line);
-      font-family: 'JetBrains Mono', 'Consolas', 'Menlo', monospace;
+      max-height: 110px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
       font-size: 10px;
       line-height: 1.5;
     }
     .log-entry {
-      padding: 3px 0 3px 8px;
-      border-left: 2px solid var(--line);
+      padding: 2px 0 2px 6px;
+      border-left: 2px solid var(--border);
       margin-bottom: 1px;
       color: var(--text-sec);
       word-break: break-word;
     }
+    .log-entry:last-child { margin-bottom: 0; }
     .log-entry.error {
       border-left-color: var(--danger);
       color: var(--danger);
@@ -353,27 +438,92 @@
       color: var(--success);
     }
 
-    /* ── Chat ──────────────────────────────────── */
+    /* ── IA: Context Chips ────────────────── */
+    .context-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .context-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-height: 88px;
+      overflow-y: auto;
+    }
+    .context-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color var(--t), background var(--t);
+    }
+    .context-chip:hover { border-color: var(--accent); }
+    .context-chip.selected { border-color: var(--accent); background: var(--accent-soft); }
+    .context-chip-name {
+      font-size: 11px;
+      font-weight: 600;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .context-chip-meta {
+      font-size: 9px;
+      color: var(--text-ter);
+      white-space: nowrap;
+    }
+    .context-chip-del {
+      border: none;
+      background: transparent;
+      color: var(--text-ter);
+      font-size: 13px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .context-chip-del:hover { color: var(--danger); }
+
+    /* ── IA: Toolbar ──────────────────────── */
+    .ia-toolbar {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Chat Container ───────────────────── */
     .chat-container {
-      flex: 1; min-height: 0;
-      display: flex; flex-direction: column;
-      background: var(--surface-st);
-      border: 1px solid var(--line);
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
       border-radius: var(--r-lg);
-      box-shadow: var(--shadow);
+      background: var(--surface);
       overflow: hidden;
     }
+
     .chat-messages {
-      flex: 1; min-height: 0;
+      flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 8px 10px;
-      display: flex; flex-direction: column; gap: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
+
     .message {
-      width: fit-content; max-width: 92%;
+      width: fit-content;
+      max-width: 92%;
       border-radius: var(--r-lg);
-      padding: 7px 10px;
-      font-size: 11px; line-height: 1.45;
+      padding: 6px 10px;
+      font-size: 11.5px;
+      line-height: 1.45;
       word-break: break-word;
     }
     .message.user {
@@ -384,501 +534,529 @@
     .message.ia {
       align-self: flex-start;
       color: var(--text);
-      background: var(--bg-soft);
-      border: 1px solid var(--line);
+      background: var(--bg);
+      border: 1px solid var(--border);
     }
     .message.ia.thinking {
-      display: inline-flex; align-items: center; gap: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       color: var(--text-ter);
       font-style: italic;
     }
+
     .typing-dots {
-      display: inline-flex; align-items: center; gap: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
     }
     .typing-dots span {
-      width: 5px; height: 5px;
+      width: 5px;
+      height: 5px;
       border-radius: 999px;
       background: var(--text-ter);
-      animation: pulse 1.2s infinite ease-in-out;
+      animation: dot-pulse 1.2s infinite ease-in-out;
     }
     .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
     .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-    @keyframes pulse {
+    @keyframes dot-pulse {
       0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
       40% { transform: scale(1); opacity: 1; }
     }
 
-    /* ── Chat input ────────────────────────────── */
+    /* ── Chat Input Area ──────────────────── */
     .chat-input-area {
-      border-top: 1px solid var(--line);
-      padding: 8px 10px;
-      display: flex; flex-direction: column; gap: 8px;
+      border-top: 1px solid var(--border);
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       background: var(--surface);
     }
     .chat-input {
-      resize: none; min-height: 36px; max-height: 120px;
-      line-height: 1.4; font-family: inherit;
-    }
-    .chat-actions {
-      display: flex; align-items: center;
-      justify-content: space-between; gap: 8px; flex-wrap: wrap;
-    }
-
-    /* ── Model selector ────────────────────────── */
-    .model-selector { position: relative; }
-    .model-dropdown-btn {
-      display: flex; align-items: center; gap: 6px;
-      padding: 5px 10px;
+      resize: none;
+      min-height: 32px;
+      max-height: 100px;
+      line-height: 1.4;
+      font-family: inherit;
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
       border-radius: var(--r-md);
-      border: 1px solid var(--line);
-      background: var(--surface-st);
+      font-size: 12px;
       color: var(--text);
-      font-size: 11px; font-weight: 600;
-      cursor: pointer;
+      background: var(--bg);
       transition: border-color var(--t), box-shadow var(--t);
     }
-    .model-dropdown-btn:hover {
-      border-color: var(--accent);
-    }
-    .model-dropdown-btn .dropdown-arrow {
-      font-size: 7px;
-      transition: transform 0.2s ease;
-      color: var(--text-ter);
-    }
-    .model-dropdown-btn.open .dropdown-arrow {
-      transform: rotate(180deg);
-    }
-
-    .model-dropdown-menu {
-      position: absolute; top: 100%; left: 0;
-      margin-top: 4px;
-      background: var(--surface-st);
-      border: 1px solid var(--line);
-      border-radius: var(--r-lg);
-      box-shadow: var(--shadow-md);
-      z-index: 1000;
-      display: none;
-      min-width: 200px;
-      overflow: hidden;
-    }
-    .model-dropdown-menu.open {
-      display: block;
-      animation: slideDown 0.18s ease;
-    }
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .model-search-input {
-      width: 100%;
-      padding: 7px 10px;
-      border: none;
-      border-bottom: 1px solid var(--line);
-      font-size: 11px;
+    .chat-input:focus {
       outline: none;
-      background: var(--bg-soft);
-      border-radius: var(--r-lg) var(--r-lg) 0 0;
-      font-family: inherit;
-      color: var(--text);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
     }
-    .model-search-input:focus {
-      background: var(--surface-st);
-    }
-    .model-items-container {
-      max-height: 100%; overflow-y: auto;
-    }
-    .model-dropdown-menu { max-height: min(55vh, 450px); }
+    .chat-input::placeholder { color: var(--text-ter); }
 
-    .model-provider {
-      padding: 6px 12px 3px;
-      font-size: 9.5px;
-      color: var(--text-ter);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+    .chat-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
     }
-    .model-item {
-      padding: 7px 12px 7px 12px;
-      font-size: 11.5px;
-      color: var(--text);
+
+    .chat-actions-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chat-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-send {
+      padding: 6px 12px;
+      border: none;
+      border-radius: var(--r-md);
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
       cursor: pointer;
+      font-family: inherit;
       transition: background var(--t);
     }
-    .model-item:hover {
-      background: var(--accent-soft);
-    }
-    .model-item.selected {
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 600;
-    }
+    .btn-send:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ── Mic button ────────────────────────────── */
     .btn-mic {
-      width: 34px; height: 34px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      border: 1px solid var(--line);
-      background: var(--surface-st);
-      color: var(--text-sec);
-      font-size: 15px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-ter);
+      font-size: 13px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition: border-color var(--t), background var(--t), color var(--t);
-      display: flex; align-items: center; justify-content: center;
       position: relative;
     }
     .btn-mic:hover:not(:disabled) {
       border-color: var(--accent);
       color: var(--accent);
     }
-    .btn-mic:disabled {
-      opacity: 0.4; cursor: not-allowed;
-    }
+    .btn-mic:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-mic.recording {
       border-color: var(--danger);
       color: var(--danger);
-      background: rgba(220,38,38,0.08);
+      background: var(--danger-soft);
       animation: mic-pulse 1s infinite;
     }
     .btn-mic.recording::after {
       content: '';
       position: absolute;
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
-      border: 2px solid rgba(220,38,38,0.35);
+      border: 2px solid rgba(220,38,38,0.3);
       animation: mic-ripple 1.2s infinite;
     }
-    @keyframes mic-pulse {
-      0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.08); }
-    }
-    @keyframes mic-ripple {
-      0%   { transform: scale(1); opacity: 0.6; }
-      100% { transform: scale(1.6); opacity: 0; }
-    }
+    @keyframes mic-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    @keyframes mic-ripple { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0; } }
 
-    /* ── Markdown rendering ────────────────────── */
-    .md h1, .md h2, .md h3 {
-      margin: 0 0 5px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .md p {
-      margin: 0 0 5px;
-    }
-    .md p:last-child { margin-bottom: 0; }
-    .md ul, .md ol {
-      margin: 0 0 5px 14px; padding: 0;
-    }
-    .md li { margin-bottom: 2px; }
-    .md code {
-      font-family: 'JetBrains Mono', Consolas, monospace;
-      background: var(--accent-soft);
-      border-radius: 4px;
-      padding: 1px 4px;
-      font-size: 10px;
-    }
-    .md pre {
-      margin: 5px 0;
-      background: #1a1b1e;
+    /* ── Model Selector ───────────────────── */
+    .model-selector { position: relative; }
+    .model-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
       border-radius: var(--r-sm);
-      padding: 8px;
-      overflow-x: auto;
-    }
-    @media (prefers-color-scheme: light) {
-      .md pre { background: #1a1b1e; }
-    }
-    .md pre code {
-      background: transparent; border: none;
-      color: #e4e4e7;
-      padding: 0; font-size: 10px;
-      white-space: pre;
-    }
-    .md blockquote {
-      margin: 5px 0;
-      border-left: 3px solid var(--accent);
-      padding-left: 8px;
-      color: var(--text-sec);
-    }
-
-    /* ── Scrollbar ─────────────────────────────── */
-    .chat-messages::-webkit-scrollbar,
-    .status-area::-webkit-scrollbar,
-    .body-extract::-webkit-scrollbar,
-    .body-ia::-webkit-scrollbar,
-    .model-items-container::-webkit-scrollbar {
-      width: 5px;
-    }
-    .chat-messages::-webkit-scrollbar-thumb,
-    .status-area::-webkit-scrollbar-thumb,
-    .body-extract::-webkit-scrollbar-thumb,
-    .body-ia::-webkit-scrollbar-thumb,
-    .model-items-container::-webkit-scrollbar-thumb {
-      background: var(--line-st);
-      border-radius: 999px;
-    }
-
-    /* ── data-theme="dark" override ───────── */
-    [data-theme="dark"] {
-      --bg:          #0a0a0f;
-      --bg-soft:     #121216;
-      --surface:     rgba(255, 255, 255, 0.06);
-      --surface-st:  #18181b;
-      --line:        rgba(255, 255, 255, 0.10);
-      --line-st:     rgba(255, 255, 255, 0.18);
-      --text:        #fafafa;
-      --text-sec:    #a1a1aa;
-      --text-ter:    #71717a;
-      --accent:      #3b82f6;
-      --accent-hov:  #60a5fa;
-      --accent-soft: rgba(59, 130, 246, 0.15);
-    }
-
-    /* ── Context Selector ──────────────────── */
-    .context-selector {
       background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--r-lg);
-      padding: 8px 10px;
-      display: flex; flex-direction: column; gap: 4px;
-      max-height: 140px; overflow-y: auto;
-    }
-    .context-chip {
-      display: flex; align-items: center; gap: 6px;
-      padding: 5px 8px;
-      border-radius: var(--r-md);
-      border: 1px solid var(--line);
-      background: var(--surface-st);
+      color: var(--text-sec);
+      font-size: 10px;
+      font-weight: 600;
       cursor: pointer;
-      transition: border-color var(--t), background var(--t);
+      font-family: inherit;
+      transition: border-color var(--t);
     }
-    .context-chip:hover { border-color: var(--accent); }
-    .context-chip.selected { border-color: var(--accent); background: var(--accent-soft); }
-    .context-chip-name { font-size: 11px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .context-chip-meta { font-size: 9.5px; color: var(--text-ter); white-space: nowrap; }
-    .context-chip-del {
-      border: none; background: transparent; color: var(--text-ter);
-      font-size: 14px; cursor: pointer; line-height: 1; padding: 0 2px;
+    .model-btn:hover { border-color: var(--accent); }
+    .model-btn .arrow {
+      font-size: 6px;
+      color: var(--text-ter);
+      transition: transform 0.2s ease;
     }
-    .context-chip-del:hover { color: var(--danger); }
+    .model-btn.open .arrow { transform: rotate(180deg); }
 
-    /* ── Search Bar ────────────────────────── */
-    .search-bar { display: flex; gap: 6px; align-items: center; }
-    .search-input {
-      flex: 1; padding: 6px 8px;
-      border: 1px solid var(--line); border-radius: var(--r-md);
-      font-size: 11px; background: var(--surface-st); color: var(--text);
+    .model-menu {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      margin-bottom: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      z-index: 1000;
+      display: none;
+      min-width: 200px;
+      max-height: min(50vh, 360px);
+      overflow: hidden;
+    }
+    @media (prefers-color-scheme: dark) {
+      .model-menu { box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    }
+    .model-menu.open { display: flex; flex-direction: column; }
+
+    .model-search-input {
+      width: 100%;
+      padding: 6px 10px;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      outline: none;
+      background: var(--surface-hover);
+      color: var(--text);
       font-family: inherit;
     }
-    .search-input:focus { outline: none; border-color: var(--accent); }
-    .search-results {
-      display: none;
-      max-height: 200px; overflow-y: auto;
-      background: var(--surface-st);
-      border: 1px solid var(--line); border-radius: var(--r-md);
-      padding: 4px;
-    }
-    .search-results.visible { display: block; }
-    .search-result-item {
-      padding: 5px 8px; font-size: 10.5px; cursor: pointer;
-      border-radius: var(--r-sm); transition: background var(--t);
-    }
-    .search-result-item:hover { background: var(--accent-soft); }
-    .search-sender { font-weight: 600; color: var(--accent); display: block; font-size: 10px; }
-    .search-text { color: var(--text); }
-    .search-time { color: var(--text-ter); font-size: 9px; display: block; }
-    .search-results mark { background: #fde047; color: #1a1a1a; border-radius: 2px; padding: 0 1px; }
-    [data-theme="dark"] .search-results mark { background: #a16207; color: #fafafa; }
-    .search-senders { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0; }
-    .sender-chip {
-      font-size: 9.5px; padding: 2px 7px; border-radius: 999px;
-      border: 1px solid var(--line); background: var(--bg-soft); color: var(--text-sec);
-      cursor: pointer; transition: var(--t); font-family: inherit;
-    }
-    .sender-chip:hover { border-color: var(--accent); }
-    .sender-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-    /* ── Token Counter ─────────────────────── */
+    .model-items-container {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .model-provider {
+      padding: 5px 10px 2px;
+      font-size: 9px;
+      color: var(--text-ter);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .model-item {
+      padding: 5px 10px;
+      font-size: 11px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background var(--t);
+    }
+    .model-item:hover { background: var(--accent-ghost); }
+    .model-item.selected {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── Token Count ──────────────────────── */
     .token-count {
-      font-size: 10px; color: var(--text-ter);
-      padding: 2px 6px;
+      font-size: 9px;
+      color: var(--text-ter);
+      padding: 1px 4px;
+      white-space: nowrap;
     }
 
-    /* ── Stream cursor ─────────────────────── */
+    /* ── Stream Cursor ────────────────────── */
     .stream-cursor {
-      animation: blink-cursor 0.8s step-end infinite;
-      font-weight: 700; color: var(--accent);
+      animation: blink 0.8s step-end infinite;
+      font-weight: 700;
+      color: var(--accent);
     }
-    @keyframes blink-cursor {
-      50% { opacity: 0; }
-    }
+    @keyframes blink { 50% { opacity: 0; } }
 
-    /* ── Chat Actions Bar ──────────────────── */
+    /* ── Chat Actions Bar ─────────────────── */
     .chat-actions-bar {
-      display: flex; gap: 4px; margin-top: 6px; padding-top: 4px;
-      border-top: 1px solid var(--line); opacity: 0.6;
+      display: flex;
+      gap: 2px;
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+      opacity: 0.5;
       transition: opacity var(--t);
     }
     .chat-actions-bar:hover { opacity: 1; }
     .chat-action-btn {
-      border: none; background: transparent; cursor: pointer;
-      font-size: 14px; padding: 2px 4px; border-radius: 4px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 4px;
+      border-radius: 3px;
       transition: background var(--t);
     }
-    .chat-action-btn:hover { background: var(--accent-soft); }
+    .chat-action-btn:hover { background: var(--accent-ghost); }
 
-    /* ── Stop Button ───────────────────────── */
+    /* ── Stop Button ──────────────────────── */
     .btn-stop {
-      border: none; border-radius: var(--r-md);
-      background: var(--danger); color: #fff;
-      font-size: 11px; font-weight: 700;
-      padding: 6px 12px; cursor: pointer;
+      border: none;
+      border-radius: var(--r-sm);
+      background: var(--danger);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      cursor: pointer;
       display: none;
+      font-family: inherit;
     }
     .btn-stop:hover { opacity: 0.85; }
 
-    /* ── Context Toolbar (summary/stats) ───── */
-    .context-toolbar {
-      display: flex; gap: 6px; flex-wrap: wrap;
+    /* ── IA: Search ────────────────────────── */
+    .search-bar {
+      display: flex;
+      gap: 4px;
+      align-items: center;
     }
-    .context-toolbar button {
-      border: 1px solid var(--line); border-radius: var(--r-md);
-      background: var(--surface-st); color: var(--text-sec);
-      font-size: 10.5px; padding: 5px 8px; cursor: pointer;
-      transition: border-color var(--t), background var(--t);
+    .search-input {
+      flex: 1;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 11px;
+      background: var(--surface);
+      color: var(--text);
       font-family: inherit;
+      transition: border-color var(--t);
     }
-    .context-toolbar button:hover {
-      border-color: var(--accent); background: var(--accent-soft); color: var(--accent);
+    .search-input:focus { outline: none; border-color: var(--accent); }
+
+    .search-senders {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+      margin: 2px 0;
+    }
+    .sender-chip {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-sec);
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--t);
+    }
+    .sender-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .sender-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .search-results {
+      display: none;
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 4px;
+      background: var(--surface);
+    }
+    .search-results.visible { display: block; }
+    .search-result-item {
+      padding: 4px 6px;
+      font-size: 10px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: background var(--t);
+    }
+    .search-result-item:hover { background: var(--accent-ghost); }
+    .search-sender { font-weight: 600; color: var(--accent); font-size: 9px; }
+    .search-text { color: var(--text); }
+    .search-time { color: var(--text-ter); font-size: 8px; }
+    .search-results mark {
+      background: #fde047;
+      color: #1a1a1a;
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .search-results mark { background: #a16207; color: #fafafa; }
     }
 
-    /* ── Header button group ───────────────── */
-    .header-actions {
-      display: flex; gap: 4px; align-items: center;
+    /* ── IA: Context Toolbar ──────────────── */
+    .context-toolbar {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Markdown ──────────────────────────── */
+    .md h1, .md h2, .md h3 {
+      margin: 0 0 4px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .md p { margin: 0 0 4px; }
+    .md p:last-child { margin-bottom: 0; }
+    .md ul, .md ol { margin: 0 0 4px 14px; padding: 0; }
+    .md li { margin-bottom: 1px; }
+    .md code {
+      font-family: var(--font-mono);
+      background: var(--accent-soft);
+      border-radius: 3px;
+      padding: 1px 3px;
+      font-size: 10px;
+    }
+    .md pre {
+      margin: 4px 0;
+      background: #1a1b1e;
+      border-radius: var(--r-sm);
+      padding: 6px 8px;
+      overflow-x: auto;
+    }
+    .md pre code {
+      background: transparent;
+      border: none;
+      color: #e4e4e7;
+      padding: 0;
+      font-size: 10px;
+      white-space: pre;
+    }
+    .md blockquote {
+      margin: 4px 0;
+      border-left: 3px solid var(--accent);
+      padding-left: 6px;
+      color: var(--text-sec);
+    }
+
+    /* ── Scrollbar ─────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-ter); }
+
+    /* ── data-theme ─────────────────────────── */
+    [data-theme="dark"] {
+      --bg: #0c0c0d;
+      --surface: #18181b;
+      --surface-hover: #1f1f23;
+      --border: #27272a;
+      --border-strong: #3f3f46;
+      --text: #fafafa;
+      --text-sec: #a1a1aa;
+      --text-ter: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-soft: rgba(59,130,246,0.12);
+      --accent-ghost: rgba(59,130,246,0.08);
     }
   </style>
 </head>
 <body>
   <div class="panel">
-    <!-- ─── Header ────────────────────────── -->
-    <div class="header">
-      <div class="title-wrap">
-        <h1 class="title">Extrator WhatsApp</h1>
-        <span class="subtitle"><span class="status-dot"></span><span id="globalStatus">Pronto para extrair</span></span>
-      </div>
-      <div class="header-actions">
-        <button class="header-btn" id="btnTheme" title="Tema">🌙</button>
-        <button class="header-btn" id="btnToggle" title="Fechar">&times;</button>
-      </div>
-    </div>
 
-    <!-- ─── Tabs ──────────────────────────── -->
-    <div class="tabs">
-      <button class="tab active" data-tab="extract">Extrair</button>
-      <button class="tab" data-tab="ia">Assistente IA</button>
-      <button class="tab" data-tab="config">Config</button>
-    </div>
-
-    <!-- ═══ Tab: Extrair ════════════════════ -->
-    <div class="tab-content active" id="tab-extract">
-      <div class="body-extract">
-        <div class="card">
-          <div class="card-title">Extração rápida em 3 passos</div>
-          <p class="helper-text">Escolha o periodo, marque o que vai no ZIP e clique em extrair.</p>
+    <!-- ═══ Top Bar (header + tabs unificados) ═══ -->
+    <div class="topbar">
+      <div class="topbar-row">
+        <div class="topbar-brand">
+          <span class="topbar-icon">W</span>
+          <span class="topbar-title">Extrator</span>
+          <span class="topbar-sub" id="globalStatus">Pronto</span>
         </div>
+        <div class="topbar-actions">
+          <button class="topbar-btn" id="btnTheme" title="Alternar tema">🌙</button>
+          <button class="topbar-btn" id="btnToggle" title="Fechar">&times;</button>
+        </div>
+      </div>
+      <div class="tabbar">
+        <button class="tab active" data-tab="extract">Extrair</button>
+        <button class="tab" data-tab="ia">IA</button>
+        <button class="tab" data-tab="config">Config</button>
+      </div>
+    </div>
 
-        <div class="card">
-          <div class="card-title">Configuração</div>
-          <div class="form-group">
-            <label class="label">Modo de extracao</label>
-            <select id="extractMode" class="custom-select">
+    <!-- ═══ Tab: Extrair ═══════════════════════ -->
+    <div class="tab-content active" id="tab-extract">
+      <div class="tab-body">
+        <div class="section-title">Extração</div>
+        <p class="helper-text">Escolha o período e o que incluir no ZIP, depois extraia.</p>
+
+        <div class="extract-form">
+          <div class="field-group">
+            <label class="field-label">Modo de extração</label>
+            <select id="extractMode" class="select">
               <option value="last_24h">Últimas 24 horas</option>
               <option value="date_range">Desde data específica</option>
-              <option value="last_x_days">Ultimos X dias</option>
+              <option value="last_x_days">Últimos X dias</option>
               <option value="all">Todas as mensagens</option>
             </select>
           </div>
 
-          <div id="dateRangeFields" class="conditional-field">
-            <div class="row">
-              <div class="form-group">
-                <label class="label">Data</label>
-                <input type="date" id="fromDate" class="input-field">
+          <div id="dateRangeFields" class="conditional">
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label">Data</label>
+                <input type="date" id="fromDate" class="input">
               </div>
-              <div class="form-group">
-                <label class="label">Hora</label>
-                <input type="time" id="fromTime" class="input-field" value="00:00">
+              <div class="field-group">
+                <label class="field-label">Hora</label>
+                <input type="time" id="fromTime" class="input" value="00:00">
               </div>
             </div>
           </div>
 
-          <div id="lastXDaysFields" class="conditional-field">
-            <div class="form-group">
-              <label class="label">Número de dias</label>
-              <input type="number" id="daysCount" class="input-field" min="1" max="365" value="7">
+          <div id="lastXDaysFields" class="conditional">
+            <div class="field-group">
+              <label class="field-label">Número de dias</label>
+              <input type="number" id="daysCount" class="input" min="1" max="365" value="7">
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="label">Incluir no ZIP</label>
+          <div class="field-group">
+            <label class="field-label">Incluir no ZIP</label>
             <div class="checkbox-group">
-              <label class="checkbox-label">
+              <label class="checkbox-pill">
                 <input type="checkbox" id="includeAudio" checked>
                 Áudio
               </label>
-              <label class="checkbox-label">
+              <label class="checkbox-pill">
                 <input type="checkbox" id="includeImage" checked>
                 Imagem
               </label>
-              <label class="checkbox-label">
+              <label class="checkbox-pill">
                 <input type="checkbox" id="autoTranscribe">
-                Transcrever áudios automaticamente
+                Transcrever áudios
               </label>
             </div>
           </div>
 
-          <button id="btnExtract" class="btn-extract">Extrair mensagens</button>
+          <button id="btnExtract" class="btn-primary">Extrair mensagens</button>
         </div>
 
-        <div class="card">
-          <div class="card-title">Status da execucao</div>
-          <div class="status-area" id="status">
-            <div class="log-entry">Pronto para extrair...</div>
-          </div>
+        <div class="section-title" style="margin-top:2px">Status</div>
+        <div class="log-area" id="status">
+          <div class="log-entry">Pronto para extrair...</div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ Tab: Assistente IA ══════════════ -->
+    <!-- ═══ Tab: IA ═══════════════════════════ -->
     <div class="tab-content" id="tab-ia">
-      <div class="body-ia">
+      <div class="tab-body">
         <!-- Context Selector -->
-        <div class="card" style="padding:8px 10px">
-          <div class="card-title" style="font-size:10px;margin-bottom:4px">Contextos Extraídos</div>
-          <div class="context-selector" id="contextSelector">
-            <div class="helper-text" style="font-size:10px;padding:4px 0">Nenhum contexto extraído</div>
+        <div class="context-bar">
+          <div class="section-title">Contextos</div>
+          <div class="context-chips" id="contextSelector">
+            <div class="helper-text" style="padding:4px 0">Nenhum contexto extraído</div>
           </div>
         </div>
 
-        <!-- Search Bar + Actions -->
-        <div class="card" style="padding:8px 10px">
-          <div class="card-title" style="font-size:10px;margin-bottom:4px">Busca</div>
-          <div class="search-bar">
-            <input type="text" id="searchInput" class="search-input" placeholder="Buscar mensagens… (/ para foco)" />
-          </div>
-          <div class="search-senders" id="searchSenders"></div>
-          <div class="search-results" id="searchResults"></div>
+        <!-- Toolbar -->
+        <div class="ia-toolbar">
+          <button class="btn-secondary btn-small" id="btnQuickSummary">📝 Resumo</button>
+          <button class="btn-secondary btn-small" id="btnKeyPoints">📋 Pontos</button>
+          <button class="btn-secondary btn-small" id="btnStats">📊 Stats</button>
+          <button class="btn-secondary btn-small" id="btnTranscribe" style="display:none">🎤 Transc.</button>
         </div>
 
-        <!-- Context Toolbar -->
-        <div class="context-toolbar">
-          <button id="btnQuickSummary">📝 Resumo rápido</button>
-          <button id="btnKeyPoints">📋 Pontos principais</button>
-          <button id="btnStats">📊 Estatísticas</button>
-          <button id="btnTranscribe" style="display:none">🎤 Transcrever</button>
+        <!-- Search -->
+        <div class="search-bar">
+          <input type="text" id="searchInput" class="search-input" placeholder="Buscar mensagens…" />
         </div>
+        <div class="search-senders" id="searchSenders"></div>
+        <div class="search-results" id="searchResults"></div>
 
         <!-- Chat -->
         <div class="chat-container">
@@ -890,30 +1068,30 @@
                 <li>Use a aba <strong>Extrair</strong> para baixar as mensagens.</li>
                 <li>Volte aqui e pergunte o que quiser sobre a conversa.</li>
               </ol>
-              <p>Eu posso resumir, identificar padroes e responder perguntas com base no contexto.</p>
+              <p>Posso resumir, identificar padrões e responder perguntas.</p>
             </div>
           </div>
           <div class="chat-input-area">
-            <div class="model-selector" id="modelSelectorContainer">
-              <button type="button" class="model-dropdown-btn" id="modelDropdownBtn">
-                <span id="selectedModelName">Carregando...</span>
-                <span class="dropdown-arrow">&#9660;</span>
-              </button>
-              <div class="model-dropdown-menu" id="modelDropdownMenu"></div>
-              <select id="modelSelect" style="display:none"></select>
-            </div>
-            <textarea id="chatInput" class="chat-input" placeholder="Digite sua pergunta..." rows="1"></textarea>
+            <textarea id="chatInput" class="chat-input" placeholder="Digite sua pergunta…" rows="1"></textarea>
             <div class="chat-actions">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <label class="checkbox-context">
+              <div class="chat-actions-left">
+                <div class="model-selector" id="modelSelectorContainer">
+                  <button type="button" class="model-btn" id="modelDropdownBtn">
+                    <span id="selectedModelName">Carregando...</span>
+                    <span class="arrow">▼</span>
+                  </button>
+                  <div class="model-menu" id="modelDropdownMenu"></div>
+                  <select id="modelSelect" style="display:none"></select>
+                </div>
+                <button id="btnMic" class="btn-mic" title="Gravar áudio">🎤</button>
+                <label class="checkbox-pill" style="font-size:10px;padding:2px 7px">
                   <input type="checkbox" id="useContext" checked>
-                  Usar contexto extraido
+                  Contexto
                 </label>
-                <button id="btnMic" class="btn-mic" title="Gravar audio">&#127908;</button>
               </div>
-              <div style="display:flex;align-items:center;gap:6px">
+              <div class="chat-actions-right">
                 <span class="token-count" id="tokenCount"></span>
-                <button id="btnStop" class="btn-stop">⏹ Parar</button>
+                <button id="btnStop" class="btn-stop">⏹</button>
                 <button id="btnSend" class="btn-send">Enviar</button>
               </div>
             </div>
@@ -922,43 +1100,44 @@
       </div>
     </div>
 
-    <!-- ═══ Tab: Config ═════════════════════ -->
+    <!-- ═══ Tab: Config ═══════════════════════ -->
     <div class="tab-content" id="tab-config">
-      <div class="body-extract">
-        <div class="card">
-          <div class="card-title">Provedor IA (OpenAI-compatible)</div>
-          <p class="helper-text">Configure seu próprio provedor de API compatível com OpenAI Chat Completions. As alterações persistem no navegador.</p>
-          <div class="form-group">
-            <label class="label">URL Base da API</label>
-            <input type="url" id="configBaseUrl" class="input-field" placeholder="https://api.openai.com/v1">
+      <div class="tab-body">
+        <div class="section-title">Provedor IA</div>
+        <p class="helper-text">Configuração do provedor compatível com OpenAI Chat Completions.</p>
+
+        <div class="extract-form">
+          <div class="field-group">
+            <label class="field-label">URL Base da API</label>
+            <input type="url" id="configBaseUrl" class="input" placeholder="https://api.openai.com/v1">
           </div>
-          <div class="form-group">
-            <label class="label">Chave da API</label>
-            <input type="password" id="configApiKey" class="input-field" placeholder="sk-...">
+          <div class="field-group">
+            <label class="field-label">Chave da API</label>
+            <input type="password" id="configApiKey" class="input" placeholder="sk-...">
           </div>
-          <div class="form-group">
-            <label class="label">Modelo Padrão</label>
-            <input type="text" id="configDefaultModel" class="input-field" placeholder="gpt-4o">
+          <div class="field-group">
+            <label class="field-label">Modelo Padrão</label>
+            <input type="text" id="configDefaultModel" class="input" placeholder="gpt-4o">
           </div>
-          <div class="row">
-            <button id="btnLoadModels" style="flex:1">Carregar modelos</button>
-            <button id="btnTestConn"  style="flex:1">Testar conexão</button>
-            <button id="btnSaveConfig" style="flex:1">Salvar</button>
+          <div class="field-row">
+            <button id="btnLoadModels" class="btn-secondary" style="flex:1">Carregar</button>
+            <button id="btnTestConn" class="btn-secondary" style="flex:1">Testar</button>
+            <button id="btnSaveConfig" class="btn-primary" style="flex:1">Salvar</button>
           </div>
-          <div id="configStatus" class="helper-text" style="margin-top:4px">&nbsp;</div>
+          <div id="configStatus" class="helper-text" style="min-height:1.2em">&nbsp;</div>
         </div>
-        <div class="card">
-          <div class="card-title">Debug</div>
-          <label class="checkbox-label">
+
+        <div class="section-title" style="margin-top:4px">Debug</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <label class="checkbox-pill">
             <input type="checkbox" id="configShowDebug">
-            Mostrar logs de debug no chat
+            Debug no chat
           </label>
-          <div style="margin-top:8px">
-            <button id="btnClearData" style="border:1px solid var(--danger);border-radius:var(--r-md);background:transparent;color:var(--danger);font-size:11px;padding:6px 10px;cursor:pointer">🗑️ Limpar dados</button>
-          </div>
+          <button id="btnClearData" class="btn-danger btn-small">🗑️ Limpar dados</button>
         </div>
       </div>
     </div>
+
   </div>
 
   <script src="sidebar.js"></script>
