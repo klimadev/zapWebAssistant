@@ -1,0 +1,309 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1781949841612,
+  "projectRoot": "/var/www/zapWebAssistant",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=20",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "vite",
+        "version": "8.0.16",
+        "category": "build"
+      },
+      {
+        "name": "vitest",
+        "version": "4.1.9",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "pnpm",
+    "runtime": "Node.js 20"
+  },
+  "build": {
+    "buildCommand": "pnpm lint 2>&1 && pnpm build 2>&1",
+    "testCommand": "npx vitest run 2>&1",
+    "lintCommand": "pnpm lint",
+    "devCommand": "pnpm dev",
+    "scripts": {
+      "dev": "vite build --watch",
+      "build": "vite build",
+      "preview": "vite preview",
+      "type-check": "tsc --noEmit",
+      "lint": "tsc --noEmit && echo '✓ type-check ok'",
+      "test": "vitest run",
+      "clean": "rm -rf dist",
+      "prebuild": "pnpm clean"
+    }
+  },
+  "conventions": {
+    "namingStyle": "camelCase",
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 7,
+      "lastAccessed": 1781949841542,
+      "keyFiles": [
+        "background.js",
+        "content.js",
+        "icon.png",
+        "injected.js",
+        "manifest.json"
+      ]
+    },
+    "libs": {
+      "path": "libs",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1781949841543,
+      "keyFiles": [
+        "jszip.min.js",
+        "wppconnect-wa.js"
+      ]
+    },
+    "openspec": {
+      "path": "openspec",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1781949841578,
+      "keyFiles": [
+        "config.yaml"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 9,
+      "lastAccessed": 1781949841588,
+      "keyFiles": [
+        "background.ts",
+        "content.ts",
+        "env.d.ts",
+        "global.d.ts",
+        "injected.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/sidebar.ts",
+      "accessCount": 59,
+      "lastAccessed": 1782028195159,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/tasks.md",
+      "accessCount": 17,
+      "lastAccessed": 1782028242363,
+      "type": "file"
+    },
+    {
+      "path": "src/sidebar.html",
+      "accessCount": 15,
+      "lastAccessed": 1782028087129,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/design.md",
+      "accessCount": 4,
+      "lastAccessed": 1782013636768,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/proposal.md",
+      "accessCount": 4,
+      "lastAccessed": 1782013637333,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/api-config/spec.md",
+      "accessCount": 2,
+      "lastAccessed": 1781951860523,
+      "type": "file"
+    },
+    {
+      "path": "manifest.json",
+      "accessCount": 2,
+      "lastAccessed": 1782014108163,
+      "type": "file"
+    },
+    {
+      "path": "src/utils.ts",
+      "accessCount": 2,
+      "lastAccessed": 1782014506192,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/storage-persistence/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950754175,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/streaming-response/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950755839,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/multi-context/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950756814,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/fulltext-search/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950757772,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/audio-transcription/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950759050,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/quick-summary/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950760414,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/keyboard-shortcuts/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950761356,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/visual-theme/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950762258,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/chat-actions/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950763715,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/error-handling/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950765543,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/context-compression/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950766269,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/conversation-stats/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950767087,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/specs/token-counter/spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1781950768315,
+      "type": "file"
+    },
+    {
+      "path": "openspec/changes/whatsapp-chatbot-v2/.openspec.yaml",
+      "accessCount": 1,
+      "lastAccessed": 1781951913199,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1782013663863,
+      "type": "file"
+    },
+    {
+      "path": "sidebar.html",
+      "accessCount": 1,
+      "lastAccessed": 1782013664526,
+      "type": "file"
+    },
+    {
+      "path": "sidebar.js",
+      "accessCount": 1,
+      "lastAccessed": 1782013664983,
+      "type": "file"
+    },
+    {
+      "path": "background.js",
+      "accessCount": 1,
+      "lastAccessed": 1782013665078,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 1,
+      "lastAccessed": 1782013675568,
+      "type": "file"
+    },
+    {
+      "path": "vite.config.ts",
+      "accessCount": 1,
+      "lastAccessed": 1782013675823,
+      "type": "file"
+    },
+    {
+      "path": "src/background.ts",
+      "accessCount": 1,
+      "lastAccessed": 1782013788432,
+      "type": "file"
+    },
+    {
+      "path": "src/utils.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1782013788796,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/storage.ts",
+      "accessCount": 1,
+      "lastAccessed": 1782013954003,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

@@ -619,6 +619,145 @@
       background: var(--line-st);
       border-radius: 999px;
     }
+
+    /* ── data-theme="dark" override ───────── */
+    [data-theme="dark"] {
+      --bg:          #0a0a0f;
+      --bg-soft:     #121216;
+      --surface:     rgba(255, 255, 255, 0.06);
+      --surface-st:  #18181b;
+      --line:        rgba(255, 255, 255, 0.10);
+      --line-st:     rgba(255, 255, 255, 0.18);
+      --text:        #fafafa;
+      --text-sec:    #a1a1aa;
+      --text-ter:    #71717a;
+      --accent:      #3b82f6;
+      --accent-hov:  #60a5fa;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+    }
+
+    /* ── Context Selector ──────────────────── */
+    .context-selector {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 8px 10px;
+      display: flex; flex-direction: column; gap: 4px;
+      max-height: 140px; overflow-y: auto;
+    }
+    .context-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--line);
+      background: var(--surface-st);
+      cursor: pointer;
+      transition: border-color var(--t), background var(--t);
+    }
+    .context-chip:hover { border-color: var(--accent); }
+    .context-chip.selected { border-color: var(--accent); background: var(--accent-soft); }
+    .context-chip-name { font-size: 11px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .context-chip-meta { font-size: 9.5px; color: var(--text-ter); white-space: nowrap; }
+    .context-chip-del {
+      border: none; background: transparent; color: var(--text-ter);
+      font-size: 14px; cursor: pointer; line-height: 1; padding: 0 2px;
+    }
+    .context-chip-del:hover { color: var(--danger); }
+
+    /* ── Search Bar ────────────────────────── */
+    .search-bar { display: flex; gap: 6px; align-items: center; }
+    .search-input {
+      flex: 1; padding: 6px 8px;
+      border: 1px solid var(--line); border-radius: var(--r-md);
+      font-size: 11px; background: var(--surface-st); color: var(--text);
+      font-family: inherit;
+    }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+    .search-results {
+      display: none;
+      max-height: 200px; overflow-y: auto;
+      background: var(--surface-st);
+      border: 1px solid var(--line); border-radius: var(--r-md);
+      padding: 4px;
+    }
+    .search-results.visible { display: block; }
+    .search-result-item {
+      padding: 5px 8px; font-size: 10.5px; cursor: pointer;
+      border-radius: var(--r-sm); transition: background var(--t);
+    }
+    .search-result-item:hover { background: var(--accent-soft); }
+    .search-sender { font-weight: 600; color: var(--accent); display: block; font-size: 10px; }
+    .search-text { color: var(--text); }
+    .search-time { color: var(--text-ter); font-size: 9px; display: block; }
+    .search-results mark { background: #fde047; color: #1a1a1a; border-radius: 2px; padding: 0 1px; }
+    [data-theme="dark"] .search-results mark { background: #a16207; color: #fafafa; }
+    .search-senders { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0; }
+    .sender-chip {
+      font-size: 9.5px; padding: 2px 7px; border-radius: 999px;
+      border: 1px solid var(--line); background: var(--bg-soft); color: var(--text-sec);
+      cursor: pointer; transition: var(--t); font-family: inherit;
+    }
+    .sender-chip:hover { border-color: var(--accent); }
+    .sender-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── Token Counter ─────────────────────── */
+    .token-count {
+      font-size: 10px; color: var(--text-ter);
+      padding: 2px 6px;
+    }
+
+    /* ── Stream cursor ─────────────────────── */
+    .stream-cursor {
+      animation: blink-cursor 0.8s step-end infinite;
+      font-weight: 700; color: var(--accent);
+    }
+    @keyframes blink-cursor {
+      50% { opacity: 0; }
+    }
+
+    /* ── Chat Actions Bar ──────────────────── */
+    .chat-actions-bar {
+      display: flex; gap: 4px; margin-top: 6px; padding-top: 4px;
+      border-top: 1px solid var(--line); opacity: 0.6;
+      transition: opacity var(--t);
+    }
+    .chat-actions-bar:hover { opacity: 1; }
+    .chat-action-btn {
+      border: none; background: transparent; cursor: pointer;
+      font-size: 14px; padding: 2px 4px; border-radius: 4px;
+      transition: background var(--t);
+    }
+    .chat-action-btn:hover { background: var(--accent-soft); }
+
+    /* ── Stop Button ───────────────────────── */
+    .btn-stop {
+      border: none; border-radius: var(--r-md);
+      background: var(--danger); color: #fff;
+      font-size: 11px; font-weight: 700;
+      padding: 6px 12px; cursor: pointer;
+      display: none;
+    }
+    .btn-stop:hover { opacity: 0.85; }
+
+    /* ── Context Toolbar (summary/stats) ───── */
+    .context-toolbar {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .context-toolbar button {
+      border: 1px solid var(--line); border-radius: var(--r-md);
+      background: var(--surface-st); color: var(--text-sec);
+      font-size: 10.5px; padding: 5px 8px; cursor: pointer;
+      transition: border-color var(--t), background var(--t);
+      font-family: inherit;
+    }
+    .context-toolbar button:hover {
+      border-color: var(--accent); background: var(--accent-soft); color: var(--accent);
+    }
+
+    /* ── Header button group ───────────────── */
+    .header-actions {
+      display: flex; gap: 4px; align-items: center;
+    }
   </style>
 </head>
 <body>
@@ -629,7 +768,10 @@
         <h1 class="title">Extrator WhatsApp</h1>
         <span class="subtitle"><span class="status-dot"></span><span id="globalStatus">Pronto para extrair</span></span>
       </div>
-      <button class="header-btn" id="btnToggle" title="Fechar">&times;</button>
+      <div class="header-actions">
+        <button class="header-btn" id="btnTheme" title="Tema">🌙</button>
+        <button class="header-btn" id="btnToggle" title="Fechar">&times;</button>
+      </div>
     </div>
 
     <!-- ─── Tabs ──────────────────────────── -->
@@ -690,6 +832,10 @@
                 <input type="checkbox" id="includeImage" checked>
                 Imagem
               </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="autoTranscribe">
+                Transcrever áudios automaticamente
+              </label>
             </div>
           </div>
 
@@ -708,6 +854,33 @@
     <!-- ═══ Tab: Assistente IA ══════════════ -->
     <div class="tab-content" id="tab-ia">
       <div class="body-ia">
+        <!-- Context Selector -->
+        <div class="card" style="padding:8px 10px">
+          <div class="card-title" style="font-size:10px;margin-bottom:4px">Contextos Extraídos</div>
+          <div class="context-selector" id="contextSelector">
+            <div class="helper-text" style="font-size:10px;padding:4px 0">Nenhum contexto extraído</div>
+          </div>
+        </div>
+
+        <!-- Search Bar + Actions -->
+        <div class="card" style="padding:8px 10px">
+          <div class="card-title" style="font-size:10px;margin-bottom:4px">Busca</div>
+          <div class="search-bar">
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar mensagens… (/ para foco)" />
+          </div>
+          <div class="search-senders" id="searchSenders"></div>
+          <div class="search-results" id="searchResults"></div>
+        </div>
+
+        <!-- Context Toolbar -->
+        <div class="context-toolbar">
+          <button id="btnQuickSummary">📝 Resumo rápido</button>
+          <button id="btnKeyPoints">📋 Pontos principais</button>
+          <button id="btnStats">📊 Estatísticas</button>
+          <button id="btnTranscribe" style="display:none">🎤 Transcrever</button>
+        </div>
+
+        <!-- Chat -->
         <div class="chat-container">
           <div class="chat-messages" id="chatMessages">
             <div class="message ia md">
@@ -738,7 +911,11 @@
                 </label>
                 <button id="btnMic" class="btn-mic" title="Gravar audio">&#127908;</button>
               </div>
-              <button id="btnSend" class="btn-send">Enviar</button>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="token-count" id="tokenCount"></span>
+                <button id="btnStop" class="btn-stop">⏹ Parar</button>
+                <button id="btnSend" class="btn-send">Enviar</button>
+              </div>
             </div>
           </div>
         </div>
@@ -776,6 +953,9 @@
             <input type="checkbox" id="configShowDebug">
             Mostrar logs de debug no chat
           </label>
+          <div style="margin-top:8px">
+            <button id="btnClearData" style="border:1px solid var(--danger);border-radius:var(--r-md);background:transparent;color:var(--danger);font-size:11px;padding:6px 10px;cursor:pointer">🗑️ Limpar dados</button>
+          </div>
         </div>
       </div>
     </div>

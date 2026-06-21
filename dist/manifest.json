@@ -18,7 +18,8 @@
     "sidePanel",
     "tabs",
     "alarms",
-    "storage"
+    "storage",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "https://web.whatsapp.com/*"
