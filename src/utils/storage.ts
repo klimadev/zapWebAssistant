@@ -25,6 +25,7 @@ export interface UserPreferences {
   includeImage: boolean;
   autoTranscribe: boolean;
   autoCompress: boolean;
+  contextOnly: boolean;
 }
 
 export interface ExtractedContext {
@@ -119,6 +120,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   includeImage: true,
   autoTranscribe: false,
   autoCompress: false,
+  contextOnly: false,
 };
 
 export async function loadPreferences(): Promise<UserPreferences> {

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1781949841612,
+  "lastScanned": 1782040349178,
   "projectRoot": "/var/www/zapWebAssistant",
   "techStack": {
     "languages": [
@@ -38,7 +38,7 @@
   },
   "build": {
     "buildCommand": "pnpm build 2>&1",
-    "testCommand": "npx vitest run 2>&1",
+    "testCommand": "pnpm test",
     "lintCommand": "pnpm lint",
     "devCommand": "pnpm dev",
     "scripts": {
@@ -56,7 +56,7 @@
     "namingStyle": "camelCase",
     "importStyle": null,
     "testPattern": null,
-    "fileOrganization": null
+    "fileOrganization": "type-based"
   },
   "structure": {
     "isMonorepo": false,
@@ -75,7 +75,7 @@
       "path": "dist",
       "purpose": "Distribution/build output",
       "fileCount": 7,
-      "lastAccessed": 1781949841542,
+      "lastAccessed": 1782040349123,
       "keyFiles": [
         "background.js",
         "content.js",
@@ -88,7 +88,7 @@
       "path": "libs",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1781949841543,
+      "lastAccessed": 1782040349127,
       "keyFiles": [
         "jszip.min.js",
         "wppconnect-wa.js"
@@ -98,7 +98,7 @@
       "path": "openspec",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1781949841578,
+      "lastAccessed": 1782040349150,
       "keyFiles": [
         "config.yaml"
       ]
@@ -107,7 +107,7 @@
       "path": "src",
       "purpose": "Source code",
       "fileCount": 9,
-      "lastAccessed": 1781949841588,
+      "lastAccessed": 1782040349155,
       "keyFiles": [
         "background.ts",
         "content.ts",
@@ -115,19 +115,38 @@
         "global.d.ts",
         "injected.ts"
       ]
+    },
+    "src/components": {
+      "path": "src/components",
+      "purpose": "UI components",
+      "fileCount": 1,
+      "lastAccessed": 1782040349168,
+      "keyFiles": [
+        "model-selector.ts"
+      ]
+    },
+    "src/utils": {
+      "path": "src/utils",
+      "purpose": "Utility functions",
+      "fileCount": 2,
+      "lastAccessed": 1782040349168,
+      "keyFiles": [
+        "icons.ts",
+        "storage.ts"
+      ]
     }
   },
   "hotPaths": [
     {
       "path": "src/sidebar.ts",
-      "accessCount": 177,
-      "lastAccessed": 1782037810794,
+      "accessCount": 187,
+      "lastAccessed": 1782041837098,
       "type": "file"
     },
     {
       "path": "src/sidebar.html",
-      "accessCount": 57,
-      "lastAccessed": 1782037845258,
+      "accessCount": 63,
+      "lastAccessed": 1782041792629,
       "type": "file"
     },
     {
@@ -138,8 +157,32 @@
     },
     {
       "path": "src/components/model-selector.ts",
+      "accessCount": 7,
+      "lastAccessed": 1782040699832,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/storage.ts",
       "accessCount": 6,
-      "lastAccessed": 1782036758964,
+      "lastAccessed": 1782041828443,
+      "type": "file"
+    },
+    {
+      "path": "manifest.json",
+      "accessCount": 5,
+      "lastAccessed": 1782040660042,
+      "type": "file"
+    },
+    {
+      "path": "src/utils.ts",
+      "accessCount": 5,
+      "lastAccessed": 1782040699432,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/icons.ts",
+      "accessCount": 5,
+      "lastAccessed": 1782040763225,
       "type": "file"
     },
     {
@@ -155,27 +198,27 @@
       "type": "file"
     },
     {
-      "path": "manifest.json",
-      "accessCount": 4,
-      "lastAccessed": 1782032888147,
-      "type": "file"
-    },
-    {
-      "path": "src/utils.ts",
-      "accessCount": 4,
-      "lastAccessed": 1782032943010,
-      "type": "file"
-    },
-    {
-      "path": "src/utils/icons.ts",
-      "accessCount": 4,
-      "lastAccessed": 1782036476910,
-      "type": "file"
-    },
-    {
-      "path": "src/utils/storage.ts",
+      "path": "sidebar.html",
       "accessCount": 3,
-      "lastAccessed": 1782032943276,
+      "lastAccessed": 1782040660454,
+      "type": "file"
+    },
+    {
+      "path": "sidebar.js",
+      "accessCount": 3,
+      "lastAccessed": 1782040661222,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 3,
+      "lastAccessed": 1782040661284,
+      "type": "file"
+    },
+    {
+      "path": "vite.config.ts",
+      "accessCount": 3,
+      "lastAccessed": 1782040683203,
       "type": "file"
     },
     {
@@ -185,33 +228,9 @@
       "type": "file"
     },
     {
-      "path": "sidebar.html",
-      "accessCount": 2,
-      "lastAccessed": 1782030210354,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 2,
-      "lastAccessed": 1782030211013,
-      "type": "file"
-    },
-    {
-      "path": "sidebar.js",
-      "accessCount": 2,
-      "lastAccessed": 1782030211197,
-      "type": "file"
-    },
-    {
       "path": "src/background.ts",
       "accessCount": 2,
       "lastAccessed": 1782032866526,
-      "type": "file"
-    },
-    {
-      "path": "vite.config.ts",
-      "accessCount": 2,
-      "lastAccessed": 1782032888396,
       "type": "file"
     },
     {

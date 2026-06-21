@@ -255,6 +255,7 @@ async function startExtraction() {
 
     filterConfig.includeAudio = includeAudio;
     filterConfig.includeImage = includeImage;
+    filterConfig.contextOnly = ($<HTMLInputElement>('contextOnly')?.checked) ?? false;
 
     // Side panel NO contexto content script: precisa enviar via background
     const response = await chrome.runtime.sendMessage({
@@ -562,44 +563,85 @@ Agora, responda à próxima mensagem do usuário.`,
   } catch (error) {
     DEBUG.error('CATCH_ERROR', error);
     const msg = (error as Error).message;
+    const isAuth = msg.includes('401') || msg.includes('Unauthorized') || msg.includes('API key') || msg.includes('api key');
+    const isRateLimit = msg.includes('429') || msg.includes('rate limit') || msg.includes('Too Many Requests');
+    const isNetwork = msg.includes('TypeError') || msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch') || msg.includes('Timeout');
+    const isServer = msg.includes('500') || msg.includes('502') || msg.includes('503') || (msg.includes('5') && msg.includes('server'));
+    const isTransient = isRateLimit || isNetwork || isServer;
+    const isAbort = msg.includes('Parado pelo usuário') || msg.includes('abort');
 
-    // Specific error handling
-    if (msg.includes('401') || msg.includes('Unauthorized') || msg.includes('API key')) {
-      addChatMessage('**API key inválida ou expirada.** [Ir para Config](/#config)', false);
-    } else if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Too Many Requests')) {
-      addChatMessage('**Muitas requisições.** Aguarde um momento e tente novamente.', false);
-      addLog('Tentando novamente em 2s…', false, false, IconRefresh);
-      await new Promise(r => setTimeout(r, 2000));
-      try {
-        const data = await callModelApi(messages, audioContents.length > 0, 30_000);
-        const retryText = extractAssistantText(data) || '';
-        if (thinkingMsg) {
-          thinkingMsg.classList.remove('thinking');
-          thinkingMsg.classList.add('md');
-          thinkingMsg.innerHTML = renderMarkdown(retryText);
+    // Auto-retry for transient errors (up to 2 attempts)
+    if (isTransient && !isAbort) {
+      let retries = 0;
+      const maxRetries = isRateLimit ? 1 : 2;
+      while (retries < maxRetries) {
+        retries++;
+        addLog(`Tentativa ${retries}/${maxRetries}…`, false, false, IconRefresh);
+        await new Promise(r => setTimeout(r, 2000 * retries));
+        try {
+          const data = await callModelApi(messages, audioContents.length > 0, 30_000);
+          const retryText = extractAssistantText(data) || '';
+          if (thinkingMsg) {
+            thinkingMsg.classList.remove('thinking');
+            thinkingMsg.classList.add('md');
+            thinkingMsg.innerHTML = renderMarkdown(retryText);
+          }
+          chatHistory.push({ role: 'user', content: userMessage });
+          chatHistory.push({ role: 'assistant', content: retryText });
+          if (activeContextKey) saveChatHistory(activeContextKey, chatHistory).catch(err => DEBUG.error('SAVE_CHAT_HISTORY', err));
+          addLog('Requisição bem-sucedida após retry.', false, true, IconCheck);
+          isChatting = false; updateSendButtonState(false); hideStopButton(); isStreaming = false;
+          return;
+        } catch (retryErr) {
+          DEBUG.warn(`Retry ${retries} falhou`, retryErr);
         }
-        chatHistory.push({ role: 'user', content: userMessage });
-        chatHistory.push({ role: 'assistant', content: retryText });
-        if (activeContextKey) saveChatHistory(activeContextKey, chatHistory).catch(err => DEBUG.error('SAVE_CHAT_HISTORY', err));
-        isChatting = false;
-        updateSendButtonState(false);
-        hideStopButton();
-        isStreaming = false;
-        return;
-      } catch { /* ignore retry failure */ }
-    } else if (msg.includes('TypeError') || msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-      addChatMessage('**Sem conexão com a internet.** Verifique sua rede.', false);
-    } else if (msg.includes('500') || msg.includes('5') || msg.includes('server')) {
-      addChatMessage('**Erro no servidor da API.** Tente novamente mais tarde.', false);
+      }
     }
 
-    if (thinkingMsg) {
+    // Error message for user
+    let userMsg: string;
+    if (isAuth) {
+      userMsg = '**API key inválida ou expirada.** Verifique na aba Config.';
+    } else if (isRateLimit) {
+      userMsg = '**Muitas requisições.** Aguarde um momento e tente novamente.';
+    } else if (isNetwork) {
+      userMsg = '**Sem conexão com a API.** Verifique sua rede e a URL base.';
+    } else if (isServer) {
+      userMsg = '**Erro no servidor da API.** Tente novamente mais tarde.';
+    } else if (isAbort) {
+      userMsg = '**Requisição cancelada.**';
+    } else {
+      userMsg = `**Erro:** ${msg}`;
+    }
+
+    addChatMessage(userMsg, false);
+
+    // Add retry button for non-auth, non-abort errors
+    if (!isAuth && !isAbort) {
+      if (thinkingMsg) {
+        const retryBar = document.createElement('div');
+        retryBar.className = 'retry-bar';
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'btn-ghost';
+        retryBtn.innerHTML = `${IconRefresh()} Tentar novamente`;
+        retryBtn.onclick = () => {
+          // Rebuild chat history without last failed exchange
+          chatHistory = chatHistory.slice(0, -2);
+          const input = $<HTMLTextAreaElement>('chatInput');
+          if (input) { input.value = userMessage; autoResizeTextarea(input); }
+          sendToIA();
+        };
+        retryBar.appendChild(retryBtn);
+        thinkingMsg.replaceWith(retryBar);
+      }
+    }
+
+    // Show raw error on thinking msg if no retry bar
+    if (thinkingMsg && (isAuth || isAbort)) {
       const errDiv = document.createElement('div');
       errDiv.className = 'message ia';
-      errDiv.textContent = `Erro: ${(error as Error).message}`;
+      errDiv.textContent = `Erro: ${msg}`;
       thinkingMsg.replaceWith(errDiv);
-    } else {
-      addChatMessage(`Erro: ${(error as Error).message}`, false);
     }
   } finally {
     isChatting = false;
@@ -739,6 +781,10 @@ function renderContextSelector() {
       <button class="context-chip-del" data-key="${key}" title="Remover">&times;</button>
     </div>`;
   }).join('');
+
+  // Update context count
+  const cnt = $<HTMLElement>('contextCount');
+  if (cnt) cnt.textContent = `(${contexts.size})`;
 
   // click to switch
   container.querySelectorAll('.context-chip').forEach(el => {
@@ -1278,8 +1324,52 @@ function populateConfigForm() {
 function initConfig() {
   const btnSave = $<HTMLElement>('btnSaveConfig');
   const btnLoad = $<HTMLElement>('btnLoadModels');
+  const btnPickModel = $<HTMLElement>('btnConfigPickModel');
+  const pickerContainer = $<HTMLElement>('configModelPickerContainer');
   const status = $<HTMLElement>('configStatus');
   const debugCb = $<HTMLInputElement>('configShowDebug');
+
+  let configModelPicker: ModelSelector | null = null;
+
+  // Sync config's contextOnly ↔ extraction's contextOnly
+  const configContextOnly = $<HTMLInputElement>('configContextOnly');
+  configContextOnly?.addEventListener('change', async () => {
+    const extractionCb = $<HTMLInputElement>('contextOnly');
+    if (extractionCb) extractionCb.checked = configContextOnly.checked;
+    preferences = await savePreferences({ contextOnly: configContextOnly.checked });
+  });
+
+  btnPickModel?.addEventListener('click', async () => {
+    if (!pickerContainer || !aiConfig.apiKey) {
+      if (status) status.innerHTML = `${IconWarning()} Configure e salve a chave da API primeiro.`;
+      return;
+    }
+    if (configModelPicker) {
+      // Toggle visibility
+      pickerContainer.style.display = pickerContainer.style.display === 'none' ? '' : 'none';
+      if (pickerContainer.style.display !== 'none') configModelPicker.reload();
+      return;
+    }
+    pickerContainer.style.display = '';
+    configModelPicker = new ModelSelector(pickerContainer, {
+      baseUrl: aiConfig.baseUrl,
+      apiKey: aiConfig.apiKey,
+      defaultModel: aiConfig.defaultModel,
+      label: 'Selecione o modelo padrão',
+      onSelect: (id) => {
+        const input = $<HTMLInputElement>('configDefaultModel');
+        if (input) input.value = id;
+        pickerContainer.style.display = 'none';
+        if (status) status.innerHTML = `${IconCheck()} Modelo padrão: ${id}`;
+        setTimeout(() => { if (status) status.innerHTML = '&nbsp;'; }, 2500);
+      },
+      onError: (err) => {
+        if (status) status.innerHTML = `${IconError()} ${err.message}`;
+        DEBUG.error('ConfigModelPicker', err);
+      },
+    });
+    await configModelPicker.reload();
+  });
 
   if (debugCb) {
     debugCb.checked = DEBUG.showInChat;
@@ -1377,7 +1467,16 @@ async function main() {
       label: 'Modelo',
       onSelect: (id) => {
         availableModels.forEach((m) => (m.selected = m.id === id));
-        DEBUG.log('Modelo selecionado', id);
+        savePreferences({ model: id }).catch(err => DEBUG.error('SAVE_MODEL_PREF', err));
+        DEBUG.log('Modelo selecionado e salvo', id);
+      },
+      onLoad: (models) => {
+        availableModels = models;
+        // Restore saved model preference
+        const saved = preferences?.model;
+        if (saved && models.some(m => m.id === saved)) {
+          modelSelectorComponent?.select(saved);
+        }
       },
       onError: (err) => DEBUG.error('ModelSelector', err),
     });
@@ -1403,6 +1502,17 @@ async function main() {
     }
   });
 
+  // Search toggle button
+  $<HTMLElement>('btnSearchToggle')?.addEventListener('click', () => {
+    const wrap = $<HTMLElement>('searchWrap');
+    if (!wrap) return;
+    const visible = wrap.style.display !== 'none';
+    wrap.style.display = visible ? 'none' : '';
+    if (!visible) {
+      $<HTMLInputElement>('searchInput')?.focus();
+    }
+  });
+
   // Search input handler
   const searchInput = $<HTMLInputElement>('searchInput');
   searchInput?.addEventListener('input', () => {
@@ -1411,6 +1521,8 @@ async function main() {
       performSearch(searchInput.value);
     }
   });
+
+  // (context count updated inside renderContextSelector)
 
   // Theme toggle
   $<HTMLElement>('btnTheme')?.addEventListener('click', toggleTheme);
@@ -1512,6 +1624,12 @@ function initExtractMode() {
       preferences = await savePreferences({ autoTranscribe: autoTx.checked });
     });
   }
+
+  // context-only sync from preferences
+  const ctxOnly = $<HTMLInputElement>('contextOnly');
+  if (ctxOnly && preferences) ctxOnly.checked = preferences.contextOnly ?? false;
+  const cfgCtxOnly = $<HTMLInputElement>('configContextOnly');
+  if (cfgCtxOnly && preferences) cfgCtxOnly.checked = preferences.contextOnly ?? false;
 }
 
 function initChat() {
