@@ -120,20 +120,20 @@
   "hotPaths": [
     {
       "path": "src/sidebar.ts",
-      "accessCount": 60,
-      "lastAccessed": 1782030350591,
+      "accessCount": 81,
+      "lastAccessed": 1782032113262,
+      "type": "file"
+    },
+    {
+      "path": "src/sidebar.html",
+      "accessCount": 26,
+      "lastAccessed": 1782031670459,
       "type": "file"
     },
     {
       "path": "openspec/changes/whatsapp-chatbot-v2/tasks.md",
       "accessCount": 17,
       "lastAccessed": 1782028242363,
-      "type": "file"
-    },
-    {
-      "path": "src/sidebar.html",
-      "accessCount": 17,
-      "lastAccessed": 1782030732171,
       "type": "file"
     },
     {
@@ -308,6 +308,18 @@
       "path": "PRODUCT.md",
       "accessCount": 1,
       "lastAccessed": 1782030559251,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/icons.ts",
+      "accessCount": 1,
+      "lastAccessed": 1782031476082,
+      "type": "file"
+    },
+    {
+      "path": "src/components/model-selector.ts",
+      "accessCount": 1,
+      "lastAccessed": 1782031513176,
       "type": "file"
     }
   ],

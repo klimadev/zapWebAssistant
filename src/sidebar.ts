@@ -11,6 +11,7 @@ import {
   loadPreferences, savePreferences, cleanupOldContexts, clearStorage,
   StorageKeys, type AiConfig, type ExtractedContext, type ChatMessage,
 } from './utils/storage';
+import { ModelSelector } from './components/model-selector';
 
 // ── Debug ─────────────────────────────────────────────────────────
 const DEBUG = {
@@ -84,14 +85,15 @@ async function saveConfigPartial(partial: Partial<AiConfig>): Promise<void> {
   aiConfig = { ...aiConfig, ...partial };
 }
 
-// ── State (replaced with local-storage-aware singletons) ───────────
-interface ModelInfo {
-  id: string;
-  provider: string;
-  selected?: boolean;
-}
+// ── State ─────────────────────────────────────────────────────────
+let modelSelectorComponent: ModelSelector | null = null;
 
-let availableModels: ModelInfo[] = [];
+// ponytail: thin shim keeps callers unchanged; component owns all UI state
+function selectModel(modelId: string) { modelSelectorComponent?.select(modelId); }
+function getSelectedModel(): string { return modelSelectorComponent?.getSelectedModel() ?? aiConfig.defaultModel; }
+async function loadModels() { await modelSelectorComponent?.reload(); }
+
+let availableModels: { id: string; provider: string; selected?: boolean }[] = [];
 // Multi-context support — Map stored in memory, synced to chrome.storage.local
 let contexts: Map<string, ExtractedContext> = new Map();
 let activeContextKey: string | null = null;
@@ -114,30 +116,9 @@ DEBUG.log('API Config', {
   hasKey: aiConfig.apiKey.length > 0,
 });
 
-// ── Model Selector ────────────────────────────────────────────────
-function selectModel(modelId: string) {
-  const modelSelect = $<HTMLSelectElement>('modelSelect');
-  const btn = $<HTMLElement>('modelDropdownBtn');
-  const menu = $<HTMLElement>('modelDropdownMenu');
-  const nameSpan = $<HTMLElement>('selectedModelName');
-
-  availableModels.forEach((m) => (m.selected = m.id === modelId));
-  if (modelSelect) modelSelect.value = modelId;
-  if (nameSpan) nameSpan.textContent = modelId;
-
-  document.querySelectorAll('.model-item').forEach((el) => {
-    el.classList.toggle('selected', (el as HTMLElement).dataset.id === modelId);
-  });
-  menu?.classList.remove('open');
-  btn?.classList.remove('open');
-}
-
-function getSelectedModel(): string {
-  const el = $<HTMLSelectElement>('modelSelect');
-  return el?.value ?? aiConfig.defaultModel;
-}
-
-async function loadModels() {
+// ── Model Selector (legacy body — replaced by ModelSelector component) ───
+// ponytail: kept as dead-code stub so grep references don't break; shims above delegate
+async function _loadModels_legacy() {
   if (!aiConfig.apiKey) {
     $<HTMLElement>('selectedModelName')!.textContent = 'Sem chave API';
     return;
@@ -1422,6 +1403,8 @@ function initConfig() {
     }
 
     await saveConfig({ baseUrl, apiKey, defaultModel });
+    // Update the component so it reloads models with new credentials
+    modelSelectorComponent?.updateConfig({ baseUrl, apiKey, defaultModel });
     if (status) status.textContent = '✅ Configuração salva!';
     setTimeout(() => { if (status) status.innerHTML = '&nbsp;'; }, 3000);
     loadModels();
@@ -1480,6 +1463,23 @@ function initConfig() {
 async function main() {
   await loadConfig();
   await loadContextsFromStorage();
+
+  // ── Bootstrap ModelSelector component ────────────────────────────
+  const modelSelectorEl = $<HTMLElement>('modelSelectorContainer');
+  if (modelSelectorEl) {
+    modelSelectorComponent = new ModelSelector(modelSelectorEl, {
+      baseUrl: aiConfig.baseUrl,
+      apiKey: aiConfig.apiKey,
+      defaultModel: aiConfig.defaultModel,
+      label: 'Modelo',
+      onSelect: (id) => {
+        availableModels.forEach((m) => (m.selected = m.id === id));
+        DEBUG.log('Modelo selecionado', id);
+      },
+      onError: (err) => DEBUG.error('ModelSelector', err),
+    });
+  }
+
   initSidebar();
   initConfig();
   initShortcuts();
