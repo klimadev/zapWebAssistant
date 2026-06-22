@@ -11,21 +11,35 @@ export function escapeHtml(value: string): string {
 
 export function renderMarkdown(text: string): string {
   const raw = String(text ?? '');
+  // Protect pre blocks and code from processing
+  const preBlocks: string[] = [];
   let html = escapeHtml(raw);
+  html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (_m, code) => {
+    preBlocks.push(`<pre><code>${code}</code></pre>`);
+    return `\x00PREBLOCK${preBlocks.length - 1}\x00`;
+  });
 
-  // Block-level (before paragraph wrap)
-  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-  html = html.replace(/^&gt;\s?(.*)$/gm, '<blockquote>$1</blockquote>');
-  // Headings
+  // Headings (must be after pre protection, before lists)
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  // Inline
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // Lists — match each contiguous block then wrap all items
+  // Horizontal rules
+  html = html.replace(/^(?:[-*_]){3,}\s*$/gm, '<hr>');
+
+  // Blockquotes
+  html = html.replace(/^&gt;\s?(.*)$/gm, '<blockquote>$1</blockquote>');
+
+  // ── Task lists ─────────────────────────────────────────────────
+  // Must be before regular unordered lists
+  html = html.replace(/^(?:[-*])\s+\[(.)\]\s+(.+)$/gm, (_m, check: string, text: string) => {
+    const checked = check === 'x' || check === 'X';
+    return `<li class="task-item${checked ? ' done' : ''}"><input type="checkbox"${checked ? ' checked' : ''} disabled> ${text}</li>`;
+  });
+  // Wrap consecutive task items
+  html = html.replace(/((?:<li class="task-item.*?<\/li>\n?)+)/g, '<ul class="task-list">$1</ul>');
+
+  // ── Unordered lists ────────────────────────────────────────────
   html = html.replace(/(?:^|\n)([-*])\s+(.+?)(?=\n\n|$)/gs, (_match) => {
     const items = _match
       .trim()
@@ -36,8 +50,13 @@ export function renderMarkdown(text: string): string {
       })
       .filter(Boolean)
       .join('');
-    return items ? `<ul>${items}</ul>` : '';
+    if (!items) return '';
+    // Check if already wrapped as task-list
+    if (items.includes('task-item')) return items;
+    return `<ul>${items}</ul>`;
   });
+
+  // ── Ordered lists ──────────────────────────────────────────────
   html = html.replace(/(?:^|\n)(\d+)\.\s+(.+?)(?=\n\n|$)/gs, (_match) => {
     const items = _match
       .trim()
@@ -51,13 +70,49 @@ export function renderMarkdown(text: string): string {
     return items ? `<ol>${items}</ol>` : '';
   });
 
-  // Paragraphs
+  // ── Tables ───────────────────────────────────────────────────
+  html = html.replace(/^\|(.+)\|\s*$/gm, (_m, row: string) => {
+    const cells = row.split('|').map((c: string) => c.trim()).filter(Boolean);
+    return cells.map((c: string) => `<td>${c}</td>`).join('');
+  });
+  // Detect separator rows (|---|---|) and convert to <th>
+  html = html.replace(/((?:<td>[-:]+\s*)+<\/td>)/g, (_m) => {
+    return _m.replace(/<td>[-:]+\s*<\/td>/g, ''); // remove separator row
+  });
+  // Wrap consecutive <td> rows in table
+  html = html.replace(/((?:<td>.*?<\/td>\n?)+)/g, (_match, content: string) => {
+    const rows = content.trim().split(/\n/).filter(Boolean);
+    if (rows.length < 2) return content; // ponytail: only if header + at least 1 data row
+    const theadRows = rows.slice(0, 1);
+    const tbodyRows = rows.slice(1);
+    return `<table><thead><tr>${theadRows.join('')}</tr></thead><tbody>${tbodyRows.map((r: string) => `<tr>${r}</tr>`).join('')}</tbody></table>`;
+  });
+
+  // ── Inline ────────────────────────────────────────────────────
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+  // ── Paragraphs ────────────────────────────────────────────────
+  // Single \n inside a paragraph becomes <br>
+  html = html.replace(/\n(?!\n)/g, '<br>\n');
+  // Double \n becomes paragraph boundary
   html = html.replace(/\n\n+/g, '</p><p>');
   html = '<p>' + html + '</p>';
 
-  // Cleanup empty wrappers
-  html = html.replace(/<p>\s*(<(h\d|ul|ol|pre|blockquote)[\s\S]*?>[\s\S]*?<\/(h\d|ul|ol|pre|blockquote)>)\s*<\/p>/g, '$1');
+  // Cleanup empty wrappers and misplaced <br> after block elements
+  html = html.replace(/<p>\s*(<(h\d|hr|table|ul|ol|pre|blockquote)[\s\S]*?>[\s\S]*?<\/(h\d|hr|table|ul|ol|pre|blockquote)>)\s*<\/p>/g, '$1');
   html = html.replace(/<p>\s*<\/p>/g, '');
+  html = html.replace(/(<\/(h\d|table|ul|ol|pre|blockquote|tr)>)\s*<br>\s*/g, '$1');
+  html = html.replace(/<br>\s*(<\/(h\d|table|ul|ol|pre|blockquote)>)/g, '$1');
+  // Remove <br> right after opening block elements
+  html = html.replace(/(<(h\d|ul|ol|pre|blockquote|table|thead|tbody|tr)>)\s*<br>\s*/g, '$1');
+
+  // Restore pre blocks
+  html = html.replace(/\x00PREBLOCK(\d+)\x00/g, (_m, i: string) => preBlocks[parseInt(i)] ?? _m);
 
   return html;
 }

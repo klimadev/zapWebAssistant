@@ -137,6 +137,77 @@ export async function savePreferences(
   return updated;
 }
 
+// ── Conversations (AI chat threads, independent from WhatsApp contexts) ─
+export interface Conversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  contextKey?: string; // optional link to an extracted context
+  messages: ChatMessage[];
+  model?: string;
+}
+
+const CONVERSATIONS_KEY = 'zap_conversations';
+
+export async function loadConversations(): Promise<Conversation[]> {
+  const data = await get<Conversation[]>(CONVERSATIONS_KEY);
+  return data ?? [];
+}
+
+export async function saveConversations(list: Conversation[]): Promise<void> {
+  await set(CONVERSATIONS_KEY, list);
+}
+
+export async function createConversation(title?: string, contextKey?: string): Promise<Conversation> {
+  const list = await loadConversations();
+  const now = new Date().toISOString();
+  const conv: Conversation = {
+    id: `conv_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    title: title ?? `Conversa ${list.length + 1}`,
+    createdAt: now,
+    updatedAt: now,
+    contextKey,
+    messages: [],
+  };
+  list.push(conv);
+  await set(CONVERSATIONS_KEY, list);
+  return conv;
+}
+
+export async function updateConversation(
+  id: string,
+  updates: Partial<Pick<Conversation, 'title' | 'contextKey' | 'messages' | 'model'>>,
+): Promise<Conversation | null> {
+  const list = await loadConversations();
+  const idx = list.findIndex((c) => c.id === id);
+  if (idx === -1) return null;
+  list[idx] = { ...list[idx], ...updates, updatedAt: new Date().toISOString() } as Conversation;
+  await set(CONVERSATIONS_KEY, list);
+  return list[idx] ?? null;
+}
+
+export async function deleteConversation(id: string): Promise<boolean> {
+  const list = await loadConversations();
+  const idx = list.findIndex((c) => c.id === id);
+  if (idx === -1) return false;
+  list.splice(idx, 1);
+  await set(CONVERSATIONS_KEY, list);
+  return true;
+}
+
+export async function appendConversationMessage(
+  convId: string,
+  msg: ChatMessage,
+): Promise<void> {
+  const list = await loadConversations();
+  const conv = list.find((c) => c.id === convId);
+  if (!conv) return;
+  conv.messages.push(msg);
+  conv.updatedAt = new Date().toISOString();
+  await set(CONVERSATIONS_KEY, list);
+}
+
 // ── Cleanup ──────────────────────────────────────────────────────
 export async function cleanupOldContexts(maxAgeDays = 90): Promise<number> {
   const contexts = await loadAllContexts();

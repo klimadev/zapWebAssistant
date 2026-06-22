@@ -83,7 +83,7 @@ export class ModelSelector {
 
     // Button
     this.btn = document.createElement('button');
-    this.btn.type = 'button';
+    this.btn.setAttribute("type", "button");;
     this.btn.className = 'model-btn';
     this.btn.id = 'modelDropdownBtn';
     this.btn.innerHTML = `<span id="selectedModelName">${this.config.label ?? this.escape(this.config.defaultModel)}</span>`;
@@ -147,7 +147,7 @@ export class ModelSelector {
       }
       // Also push vision model from config
       if (sorted.length > 0) {
-        groups.other.push('vision-model');
+        if (!groups.other) groups.other = []; groups.other.push('vision-model');
       }
 
       this.models = [];

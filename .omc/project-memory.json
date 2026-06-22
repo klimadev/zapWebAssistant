@@ -139,14 +139,14 @@
   "hotPaths": [
     {
       "path": "src/sidebar.ts",
-      "accessCount": 187,
-      "lastAccessed": 1782041837098,
+      "accessCount": 200,
+      "lastAccessed": 1782117502002,
       "type": "file"
     },
     {
       "path": "src/sidebar.html",
-      "accessCount": 63,
-      "lastAccessed": 1782041792629,
+      "accessCount": 66,
+      "lastAccessed": 1782119809937,
       "type": "file"
     },
     {
@@ -156,33 +156,39 @@
       "type": "file"
     },
     {
-      "path": "src/components/model-selector.ts",
-      "accessCount": 7,
-      "lastAccessed": 1782040699832,
-      "type": "file"
-    },
-    {
       "path": "src/utils/storage.ts",
-      "accessCount": 6,
-      "lastAccessed": 1782041828443,
+      "accessCount": 10,
+      "lastAccessed": 1782120160577,
       "type": "file"
     },
     {
-      "path": "manifest.json",
-      "accessCount": 5,
-      "lastAccessed": 1782040660042,
+      "path": "src/components/model-selector.ts",
+      "accessCount": 8,
+      "lastAccessed": 1782121042874,
       "type": "file"
     },
     {
       "path": "src/utils.ts",
-      "accessCount": 5,
-      "lastAccessed": 1782040699432,
+      "accessCount": 7,
+      "lastAccessed": 1782117276027,
+      "type": "file"
+    },
+    {
+      "path": "manifest.json",
+      "accessCount": 6,
+      "lastAccessed": 1782116908463,
       "type": "file"
     },
     {
       "path": "src/utils/icons.ts",
       "accessCount": 5,
       "lastAccessed": 1782040763225,
+      "type": "file"
+    },
+    {
+      "path": "src/utils/tools.ts",
+      "accessCount": 5,
+      "lastAccessed": 1782120229316,
       "type": "file"
     },
     {
@@ -198,6 +204,12 @@
       "type": "file"
     },
     {
+      "path": "package.json",
+      "accessCount": 4,
+      "lastAccessed": 1782116909541,
+      "type": "file"
+    },
+    {
       "path": "sidebar.html",
       "accessCount": 3,
       "lastAccessed": 1782040660454,
@@ -207,12 +219,6 @@
       "path": "sidebar.js",
       "accessCount": 3,
       "lastAccessed": 1782040661222,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 3,
-      "lastAccessed": 1782040661284,
       "type": "file"
     },
     {

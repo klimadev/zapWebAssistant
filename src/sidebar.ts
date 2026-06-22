@@ -37,7 +37,15 @@ import {
   deleteContext, loadChatHistory, saveChatHistory,
   loadPreferences, savePreferences, cleanupOldContexts, clearStorage,
   StorageKeys, type AiConfig, type ExtractedContext, type ChatMessage,
+  type Conversation, loadConversations, saveConversations,
+  createConversation, updateConversation, deleteConversation,
+  appendConversationMessage,
 } from './utils/storage';
+import {
+  TOOLS, executeToolCall, hasToolCalls, extractToolCalls,
+  getAssistantMessage, setContextsCache,
+  type ToolCall, type ToolResult,
+} from './utils/tools';
 import { ModelSelector } from './components/model-selector';
 import { createIcon, IconMic, IconStop, IconCopy, IconRefresh, IconDownload, IconCheck, IconError, IconWarning, IconMoon, IconSun, IconSearch, IconSparkles, IconBarChart, IconHeadphones, IconDoc, IconList, IconTrash, IconClose, IconSettings, IconSend, IconArrowRight, IconContext, IconInfo, IconAttach, IconMenu, IconW } from './utils/icons';
 import type { IconFn } from './utils/icons';
@@ -138,6 +146,9 @@ let speechRecognition: any = null;
 let speechTranscript = '';
 let preferences: Awaited<ReturnType<typeof loadPreferences>> | null = null;
 let lastApiUsage: { promptTokens?: number; totalTokens?: number } | null = null;
+// Conversas (threads de chat independentes)
+let conversations: Conversation[] = [];
+let activeConversationId: string | null = null;
 
 DEBUG.log('API Config', {
   baseUrl: aiConfig.baseUrl,
@@ -282,12 +293,12 @@ async function callModelApi(
   messages: Array<{ role: string; content: string | unknown[] }>,
   hasAudio: boolean,
   timeoutMs: number,
+  tools?: typeof TOOLS,
 ): Promise<Record<string, unknown>> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort('Timeout excedido'), timeoutMs);
 
   const selectedModel = getSelectedModel();
-  const endpoint = '/chat/completions';
 
   const body: Record<string, unknown> = {
     model: selectedModel,
@@ -295,8 +306,9 @@ async function callModelApi(
     temperature: 0.7,
   };
   if (hasAudio) body.modalities = ['text', 'audio'];
+  if (tools) body.tools = tools;
 
-  const response = await fetch(`${aiConfig.baseUrl}${endpoint}`, {
+  const response = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -324,6 +336,49 @@ async function callModelApi(
   }
 
   return data;
+}
+
+// ── Tool-calling loop ─────────────────────────────────────────────
+// Calls API with tools, handles the tool_calls loop, returns final text.
+async function callModelWithTools(
+  messages: Array<{ role: string; content: string | unknown[] }>,
+  hasAudio: boolean,
+  timeoutMs: number,
+  tools: typeof TOOLS,
+  onToolCall?: (name: string, args: string) => void,
+): Promise<string> {
+  let currentMessages = [...messages];
+  let maxToolRounds = 8; // safety limit
+
+  while (maxToolRounds-- > 0) {
+    const data = await callModelApi(currentMessages, hasAudio, timeoutMs, tools);
+
+    if (!hasToolCalls(data)) {
+      // Extract any text content from the final assistant message
+      const assistantMsg = getAssistantMessage(data);
+      return (assistantMsg as any).content ?? '';
+    }
+
+    // Tool call round — execute all tools
+    const toolCalls = extractToolCalls(data);
+
+    // Append assistant message with tool_calls
+    const assistantMsg: Record<string, unknown> = { role: 'assistant', content: null };
+    const tcData = (data.choices as Array<Record<string, unknown>>)?.[0]?.message as Record<string, unknown> | undefined;
+    if (tcData?.tool_calls) {
+      assistantMsg.tool_calls = tcData.tool_calls;
+    }
+    currentMessages.push(assistantMsg as any);
+
+    // Execute each tool and append result
+    for (const tc of toolCalls) {
+      onToolCall?.(tc.function.name, tc.function.arguments);
+      const result = await executeToolCall(tc);
+      currentMessages.push(result as any);
+    }
+  }
+
+  return '';
 }
 
 async function callModelApiStream(
@@ -451,9 +506,31 @@ async function sendToIA() {
   // Build messages outside try so catch can access for retry
   const messages: ChatMessage[] = [];
 
-  messages.push({
-    role: 'system',
-    content: `Você é a **WPP AI Assistant**, uma assistente de IA ultra-poderosa e persuasiva, especializada em conversas do WhatsApp.
+  const hasExtractedContexts = contexts.size > 0;
+  const useToolsApi = hasExtractedContexts && !useContextCheck;
+
+  if (useToolsApi) {
+    // ── Mode: AI tools (no context injection, AI fetches via tools) ─
+    messages.push({
+      role: 'system',
+      content: `Você é a **WPP AI Assistant**, assistente especializada em conversas do WhatsApp.
+
+## REGRAS
+- Responda em **português brasileiro**
+- Use markdown para formatar respostas
+- Dados de conversas extraídas: use as ferramentas disponíveis para listar chats, buscar mensagens e obter estatísticas
+- Se o usuário pedir algo sem contexto, use list_chats ou get_system_info primeiro
+
+## CAPACIDADES
+- Resumir conversas, identificar padrões, extrair insights
+- Analisar mensagens, transcrever áudios, sugerir respostas
+- Estatísticas e busca em conversas extraídas`,
+    });
+  } else {
+    // ── Mode: direct context injection (legacy) ────────────────────
+    messages.push({
+      role: 'system',
+      content: `Você é a **WPP AI Assistant**, uma assistente de IA ultra-poderosa e persuasiva, especializada em conversas do WhatsApp.
 
 
 ## SUA MISSÃO
@@ -484,6 +561,7 @@ ${
 
 Agora, responda à próxima mensagem do usuário.`,
     });
+  }
 
     for (const msg of chatHistory) {
       messages.push(msg);
@@ -491,17 +569,14 @@ Agora, responda à próxima mensagem do usuário.`,
 
     // Build audioContents outside try for retry access
     const audioContents: Array<{ type: string; audio: Record<string, unknown> }> = [];
-    if (useContextCheck && currentContext?.messages) {
-      const audioMsgs = (currentContext.messages as Array<{ audioBase64?: string; audioMimeType?: string }>).filter(
-        (m) => m.audioBase64,
-      );
-      for (const audioMsg of audioMsgs) {
-        const format = audioMsg.audioMimeType?.split('/')[1]?.split(';')[0]?.trim() ?? 'ogg';
-        audioContents.push({
-          type: 'input_audio',
-          audio: { data: audioMsg.audioBase64, format: audioMsg.audioMimeType ?? `audio/${format}` },
-        });
-      }
+    const audioMsgsAll = (currentContext?.messages as Array<{ audioBase64?: string; audioMimeType?: string }> | undefined) ?? [];
+    const filteredAudioMsgs = audioMsgsAll.filter((m) => m.audioBase64);
+    for (const audioMsg of filteredAudioMsgs) {
+      const format = audioMsg.audioMimeType?.split('/')[1]?.split(';')[0]?.trim() ?? 'ogg';
+      audioContents.push({
+        type: 'input_audio',
+        audio: { data: audioMsg.audioBase64, format: audioMsg.audioMimeType ?? `audio/${format}` },
+      });
     }
 
     messages.push({
@@ -521,33 +596,54 @@ Agora, responda à próxima mensagem do usuário.`,
     activeAbortController = new AbortController();
 
     let iaResponse: string;
-    try {
-      iaResponse = await callModelApiStream(
+
+    if (useToolsApi && hasExtractedContexts) {
+      // ── Tool-calling path ─────────────────────────────────────
+      iaResponse = await callModelWithTools(
         messages,
         audioContents.length > 0,
-        audioContents.length > 0 ? 180_000 : 30_000,
-        (text) => {
+        audioContents.length > 0 ? 180_000 : 60_000,
+        TOOLS,
+        (name, args) => {
           if (thinkingMsg) {
-            thinkingMsg.classList.remove('thinking');
-            thinkingMsg.classList.add('md');
-            thinkingMsg.innerHTML = renderMarkdown(text) + '<span class="stream-cursor">|</span>';
+            const argsPreview = args.length > 60 ? args.slice(0, 60) + '…' : args;
+            thinkingMsg.textContent = `🔧 Usando: ${name}(${argsPreview})`;
           }
         },
-        (controller) => { activeAbortController = controller; },
       );
-    } catch (streamErr) {
-      // Fallback to non-streaming if streaming fails
-      DEBUG.warn('Streaming failed, falling back to blocking fetch', streamErr);
-      iaResponse = await callModelApi(messages, audioContents.length > 0, audioContents.length > 0 ? 180_000 : 30_000)
-        .then(data => extractAssistantText(data) || '');
-    }
-
-    if (!iaResponse) iaResponse = 'Desculpe, não consegui processar sua mensagem.';
-
-    if (thinkingMsg) {
-      thinkingMsg.classList.remove('thinking');
-      thinkingMsg.classList.add('md');
-      thinkingMsg.innerHTML = renderMarkdown(iaResponse);
+      if (!iaResponse) iaResponse = 'Desculpe, não consegui processar sua mensagem.';
+      if (thinkingMsg) {
+        thinkingMsg.classList.remove('thinking');
+        thinkingMsg.classList.add('md');
+        thinkingMsg.innerHTML = renderMarkdown(iaResponse);
+      }
+    } else {
+      // ── Streaming path (legacy) ───────────────────────────────
+      try {
+        iaResponse = await callModelApiStream(
+          messages,
+          audioContents.length > 0,
+          audioContents.length > 0 ? 180_000 : 30_000,
+          (text) => {
+            if (thinkingMsg) {
+              thinkingMsg.classList.remove('thinking');
+              thinkingMsg.classList.add('md');
+              thinkingMsg.innerHTML = renderMarkdown(text) + '<span class="stream-cursor">|</span>';
+            }
+          },
+          (controller) => { activeAbortController = controller; },
+        );
+      } catch (streamErr) {
+        DEBUG.warn('Streaming failed, falling back to blocking fetch', streamErr);
+        iaResponse = await callModelApi(messages, audioContents.length > 0, audioContents.length > 0 ? 180_000 : 30_000)
+          .then(data => extractAssistantText(data) || '');
+      }
+      if (!iaResponse) iaResponse = 'Desculpe, não consegui processar sua mensagem.';
+      if (thinkingMsg) {
+        thinkingMsg.classList.remove('thinking');
+        thinkingMsg.classList.add('md');
+        thinkingMsg.innerHTML = renderMarkdown(iaResponse);
+      }
     }
 
     // Add chat actions
@@ -556,9 +652,9 @@ Agora, responda à próxima mensagem do usuário.`,
     chatHistory.push({ role: 'user', content: userMessage });
     chatHistory.push({ role: 'assistant', content: iaResponse });
 
-    // Save chat history per context
-    if (activeContextKey) {
-      saveChatHistory(activeContextKey, chatHistory).catch(err => DEBUG.error('SAVE_CHAT_HISTORY', err));
+    // Save chat history to conversation storage
+    if (activeConversationId) {
+      updateConversation(activeConversationId, { messages: chatHistory }).catch(err => DEBUG.error('SAVE_CONV', err));
     }
   } catch (error) {
     DEBUG.error('CATCH_ERROR', error);
@@ -579,8 +675,13 @@ Agora, responda à próxima mensagem do usuário.`,
         addLog(`Tentativa ${retries}/${maxRetries}…`, false, false, IconRefresh);
         await new Promise(r => setTimeout(r, 2000 * retries));
         try {
-          const data = await callModelApi(messages, audioContents.length > 0, 30_000);
-          const retryText = extractAssistantText(data) || '';
+          let retryText: string;
+          if (useToolsApi && hasExtractedContexts) {
+            retryText = await callModelWithTools(messages, audioContents.length > 0, 60_000, TOOLS);
+          } else {
+            const data = await callModelApi(messages, audioContents.length > 0, 30_000);
+            retryText = extractAssistantText(data) || '';
+          }
           if (thinkingMsg) {
             thinkingMsg.classList.remove('thinking');
             thinkingMsg.classList.add('md');
@@ -588,7 +689,9 @@ Agora, responda à próxima mensagem do usuário.`,
           }
           chatHistory.push({ role: 'user', content: userMessage });
           chatHistory.push({ role: 'assistant', content: retryText });
-          if (activeContextKey) saveChatHistory(activeContextKey, chatHistory).catch(err => DEBUG.error('SAVE_CHAT_HISTORY', err));
+          if (activeConversationId) {
+            updateConversation(activeConversationId, { messages: chatHistory }).catch(err => DEBUG.error('SAVE_RETRY', err));
+          }
           addLog('Requisição bem-sucedida após retry.', false, true, IconCheck);
           isChatting = false; updateSendButtonState(false); hideStopButton(); isStreaming = false;
           return;
@@ -752,9 +855,121 @@ function generateContextKey(chatId: string): string {
 async function loadContextsFromStorage(): Promise<void> {
   const stored = await loadAllContexts();
   contexts = new Map(Object.entries(stored));
+  setContextsCache(contexts);
   // cleanup old
   const removed = await cleanupOldContexts(90);
   if (removed > 0) DEBUG.log(`Limpeza: ${removed} contextos antigos removidos`);
+}
+
+// ── Conversation Management ───────────────────────────────────────
+async function loadConversationsFromStorage(): Promise<void> {
+  conversations = await loadConversations();
+  if (conversations.length > 0) {
+    activeConversationId = conversations[0]!.id;
+    const conv = conversations[0]!;
+    chatHistory = conv.messages;
+    if (conv.contextKey && contexts.has(conv.contextKey)) {
+      currentContext = contexts.get(conv.contextKey) as any;
+      activeContextKey = conv.contextKey;
+    }
+  } else {
+    // Create default conversation
+    const conv = await createConversation('Conversa principal');
+    conversations = [conv];
+    activeConversationId = conv.id;
+    chatHistory = [];
+  }
+}
+
+async function createNewConversation(): Promise<void> {
+  const idx = conversations.length + 1;
+  const conv = await createConversation(`Conversa ${idx}`);
+  conversations.push(conv);
+  activeConversationId = conv.id;
+  chatHistory = [];
+  activeContextKey = null;
+  currentContext = null;
+  renderConversationSelector();
+  updateChatDisplay();
+  updateTokenCount();
+  addLog('Nova conversa criada.', false, false, IconDoc);
+}
+
+async function switchConversation(convId: string): Promise<void> {
+  const conv = conversations.find((c) => c.id === convId);
+  if (!conv) return;
+
+  // Save current history
+  if (activeConversationId) {
+    const prev = conversations.find((c) => c.id === activeConversationId);
+    if (prev) prev.messages = [...chatHistory];
+    await saveConversations(conversations);
+  }
+
+  activeConversationId = conv.id;
+  chatHistory = [...conv.messages];
+  currentContext = conv.contextKey && contexts.has(conv.contextKey)
+    ? (contexts.get(conv.contextKey) as any)
+    : null;
+  activeContextKey = conv.contextKey ?? null;
+  renderConversationSelector();
+  updateChatDisplay();
+  updateTokenCount();
+  addLog(`Conversa: ${conv.title}`, false, false, IconArrowRight);
+}
+
+async function removeConversation(convId: string): Promise<void> {
+  if (conversations.length <= 1) {
+    addLog('Não pode remover a única conversa.', true, false, IconWarning);
+    return;
+  }
+
+  const conv = conversations.find((c) => c.id === convId);
+  const label = conv?.title ?? 'esta conversa';
+  if (!await showConfirm(`Remover "${label}"? O histórico será perdido.`)) return;
+
+  await deleteConversation(convId);
+  conversations = conversations.filter((c) => c.id !== convId);
+
+  if (activeConversationId === convId) {
+    activeConversationId = conversations[0]?.id ?? null;
+    if (activeConversationId) {
+      chatHistory = [...(conversations.find((c) => c.id === activeConversationId)?.messages ?? [])];
+    }
+  }
+  renderConversationSelector();
+  updateChatDisplay();
+  addLog('Conversa removida.', false, false, IconTrash);
+}
+
+async function renameConversation(convId: string, title: string): Promise<void> {
+  await updateConversation(convId, { title });
+  const conv = conversations.find((c) => c.id === convId);
+  if (conv) conv.title = title;
+  renderConversationSelector();
+}
+
+function renderConversationSelector() {
+  const container = $<HTMLElement>('conversationSelector');
+  if (!container) return;
+
+  if (conversations.length === 0) {
+    container.innerHTML = '<span class="helper-text">Nenhuma conversa</span>';
+    return;
+  }
+
+  container.innerHTML = `<select id="conversationSelect" class="select conv-select">
+    ${conversations.map((c) =>
+      `<option value="${c.id}"${c.id === activeConversationId ? ' selected' : ''}>
+        ${escapeHtml(c.title)}
+      </option>`
+    ).join('')}
+  </select>`;
+
+  const sel = $<HTMLSelectElement>('conversationSelect');
+  sel?.addEventListener('change', () => {
+    if (sel.value) switchConversation(sel.value);
+  });
 }
 
 function getContextList(): ExtractedContext[] {
@@ -861,6 +1076,7 @@ async function onExtractionComplete(context: Record<string, any>) {
   try { await saveContext(key, ctx); } catch (err) { DEBUG.error('SAVE_CONTEXT', err); }
   contexts.set(key, ctx);
   activeContextKey = key;
+  setContextsCache(contexts);
   currentContext = ctx as any;
   chatHistory = [];
   try { await saveChatHistory(key, []); } catch (err) { DEBUG.error('SAVE_CHAT_HISTORY', err); }
@@ -1456,6 +1672,8 @@ function initConfig() {
 async function main() {
   await loadConfig();
   await loadContextsFromStorage();
+  setContextsCache(contexts);
+  await loadConversationsFromStorage();
 
   // ── Bootstrap ModelSelector component ────────────────────────────
   const modelSelectorEl = $<HTMLElement>('modelSelectorContainer');
@@ -1532,6 +1750,13 @@ async function main() {
   $<HTMLElement>('btnKeyPoints')?.addEventListener('click', () => quickSummary('key_points'));
 
   // Stats button
+
+  // Conversation buttons
+  $<HTMLElement>("btnNewConv")?.addEventListener("click", createNewConversation);
+  $<HTMLElement>("btnDelConv")?.addEventListener("click", async () => {
+    if (activeConversationId) await removeConversation(activeConversationId);
+  });
+
   $<HTMLElement>('btnStats')?.addEventListener('click', showConversationStats);
 
   // Clear data action
