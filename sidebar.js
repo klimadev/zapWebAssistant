@@ -190,6 +190,7 @@ let chatHistory = [];
 let isExtracting = false;
 let isChatting = false;
 let isRecording = false;
+let currentAbortController = null;
 let speechRecognition = null;
 let speechTranscript = '';
 
@@ -319,6 +320,49 @@ function updateSendButtonState(isLoading) {
   if (!btn) return;
   btn.disabled = isLoading;
   btn.textContent = isLoading ? 'Enviando...' : 'Enviar';
+  showCancelButton(isLoading);
+}
+
+function showCancelButton(show) {
+  const btn = $('btnCancel');
+  if (!btn) return;
+  btn.style.display = show ? 'inline-flex' : 'none';
+}
+
+function cancelResponse() {
+  DEBUG.log('cancelResponse chamado');
+  if (!currentAbortController) {
+    DEBUG.warn('Nenhum AbortController ativo');
+    return;
+  }
+  try {
+    currentAbortController.abort();
+    DEBUG.log('Requisição abortada');
+  } catch (err) {
+    DEBUG.error('CANCEL_ABORT', err);
+  }
+  currentAbortController = null;
+  // Remove thinking message
+  const container = $('chatMessages');
+  if (container) {
+    const thinkingEl = container.querySelector('.message.ia.thinking');
+    if (thinkingEl) thinkingEl.remove();
+    const lastUserMsg = container.querySelector('.message.user:last-of-type');
+    if (lastUserMsg) {
+      const cancelMsg = document.createElement('div');
+      cancelMsg.className = 'message ia';
+      cancelMsg.style.color = '#dc2626';
+      cancelMsg.style.fontSize = '11px';
+      cancelMsg.style.fontStyle = 'italic';
+      cancelMsg.textContent = '⏹ Resposta cancelada.';
+      cancelMsg.id = 'cancelNotice';
+      // Insert after user message
+      lastUserMsg.insertAdjacentElement('afterend', cancelMsg);
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+  isChatting = false;
+  updateSendButtonState(false);
 }
 
 function getFilterConfig() {
@@ -558,8 +602,15 @@ function toChatCompletionsInput(messages) {
 }
 
 async function callModelApi(messages, hasAudio, timeoutMs) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  if (currentAbortController) {
+    try { currentAbortController.abort(); } catch (_) {}
+  }
+  currentAbortController = new AbortController();
+  const timeoutId = setTimeout(() => {
+    if (currentAbortController && !currentAbortController.signal.aborted) {
+      currentAbortController.abort();
+    }
+  }, timeoutMs);
 
   const selectedModel = getSelectedModel();
   const endpoint = '/chat/completions';
@@ -575,15 +626,24 @@ async function callModelApi(messages, hasAudio, timeoutMs) {
     body.modalities = ['text', 'audio'];
   }
 
-  const response = await fetch(`${API_CONFIG.baseUrl}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_CONFIG.apiKey}`
-    },
-    body: JSON.stringify(body),
-    signal: controller.signal
-  });
+  let response;
+  try {
+    response = await fetch(`${API_CONFIG.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_CONFIG.apiKey}`
+      },
+      body: JSON.stringify(body),
+      signal: currentAbortController.signal
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new DOMException('Cancelado pelo usuário', 'AbortError');
+    }
+    throw error;
+  }
 
   clearTimeout(timeoutId);
   DEBUG.log('Response status', response.status);
@@ -750,9 +810,15 @@ Agora, responda à próxima mensagem do usuário da forma mais útil possível.`
   } catch (error) {
     DEBUG.error('CATCH_ERROR', error);
     if (thinkingMsg) thinkingMsg.remove();
-    addChatMessage(`❌ Erro: ${error.message}`, false);
+    if (error.name === 'AbortError') {
+      DEBUG.log('Requisição cancelada pelo usuário');
+      // CancelNotice já foi adicionado pelo cancelResponse()
+    } else {
+      addChatMessage(`❌ Erro: ${error.message}`, false);
+    }
   } finally {
     isChatting = false;
+    currentAbortController = null;
     updateSendButtonState(false);
     DEBUG.log('Finalizado');
   }
@@ -843,6 +909,7 @@ function initChat() {
   const input = $('chatInput');
   const btnSend = $('btnSend');
   const btnMic = $('btnMic');
+  const btnCancel = $('btnCancel');
 
   autoResizeTextarea(input);
 
@@ -851,6 +918,11 @@ function initChat() {
   };
 
   btnSend.addEventListener('click', sendMessage);
+
+  if (btnCancel) {
+    btnCancel.addEventListener('click', cancelResponse);
+  }
+
   input.addEventListener('input', () => autoResizeTextarea(input));
   
   input.addEventListener('keydown', (e) => {

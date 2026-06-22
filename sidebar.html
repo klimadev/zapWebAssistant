@@ -648,6 +648,24 @@
       min-width: 80px;
     }
 
+    .btn-cancel {
+      padding: 8px 14px;
+      border: 1px solid var(--danger);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn-cancel:hover {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
     .btn-mic {
       width: 36px;
       height: 36px;
@@ -848,7 +866,10 @@
                 </label>
                 <button id="btnMic" class="btn-mic" title="Gravar áudio">🎤</button>
               </div>
-              <button id="btnSend" class="btn-send">Enviar</button>
+              <div style="display:flex;gap:6px;align-items:stretch">
+                <button id="btnCancel" class="btn-cancel" style="display:none">⏹ Cancelar</button>
+                <button id="btnSend" class="btn-send">Enviar</button>
+              </div>
             </div>
           </div>
         </div>

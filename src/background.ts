@@ -148,11 +148,16 @@ async function handleOpenSidePanel(
   try {
     if (!chrome.sidePanel?.open) throw new Error('chrome.sidePanel não disponível');
 
-    const tabId = request.tabId;
-    if (!tabId) throw new Error('tabId não fornecido');
+    let tabId = request.tabId;
+    if (!tabId) {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tabs?.length) throw new Error('Nenhuma tab ativa');
+      tabId = tabs[0]!.id;
+      if (!tabId) throw new Error('Tab sem ID');
+    }
 
     await chrome.sidePanel.open({ tabId });
-    DEBUG.log('✅ Side panel aberto');
+    DEBUG.log('✅ Side panel aberto', { tabId });
     sendResponse({ success: true });
   } catch (error) {
     DEBUG.error('OPEN_SIDE_PANEL', error);
